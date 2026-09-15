@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 
 from .models import Email
@@ -100,7 +101,19 @@ class EmailSerializer(serializers.ModelSerializer):
         if not recipients:
             return None
 
-        return recipients[0]
+        # If recipients are stored as a list
+        if isinstance(recipients, list):
+
+            if len(recipients) == 0:
+                return None
+
+            return recipients[0]
+
+        # If recipient is stored as a plain string
+        if isinstance(recipients, str):
+            return recipients
+
+        return None
 
     def get_recipient_name(self, obj):
 
@@ -109,7 +122,21 @@ class EmailSerializer(serializers.ModelSerializer):
         if not recipient:
             return None
 
-        return recipient.get("name")
+        # Example:
+        # {"name": "John Smith", "email": "john.smith@gmail.com"}
+        if isinstance(recipient, dict):
+            return recipient.get("name")
+
+        # Example:
+        # "john.smith@gmail.com"
+        if isinstance(recipient, str):
+
+            if "@" in recipient:
+                return recipient.split("@")[0]
+
+            return recipient
+
+        return None
 
     def get_recipient_email(self, obj):
 
@@ -118,13 +145,24 @@ class EmailSerializer(serializers.ModelSerializer):
         if not recipient:
             return None
 
-        return recipient.get("email")
+        # Dictionary format
+        if isinstance(recipient, dict):
+            return recipient.get("email")
+
+        # Plain email format
+        if isinstance(recipient, str):
+            return recipient
+
+        return None
 
     # ==========================================
     # Date
     # ==========================================
 
     def get_date(self, obj):
+
+        if not obj.activity:
+            return None
 
         return obj.activity.created_at
 

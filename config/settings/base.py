@@ -200,3 +200,29 @@ SIMPLE_JWT = {
 }
 
 
+
+
+
+# ============================================================
+# TWILIO CONFIGURATION
+# ============================================================
+
+TWILIO_ACCOUNT_SID = config(
+    "TWILIO_ACCOUNT_SID",
+    default=None,
+)
+
+TWILIO_AUTH_TOKEN = config(
+    "TWILIO_AUTH_TOKEN",
+    default=None,
+)
+
+TWILIO_PHONE_NUMBER = config(
+    "TWILIO_PHONE_NUMBER",
+    default=None,
+)
+
+TWILIO_WEBHOOK_BASE_URL = config(
+    "TWILIO_WEBHOOK_BASE_URL",
+    default=None,
+)
