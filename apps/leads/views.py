@@ -1,15 +1,749 @@
 
-from django.db import models
+# from django.db import models
+
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework import status
+# from rest_framework.permissions import IsAuthenticated, AllowAny
+
+# # from apps.accounts.models import User
+# from apps.companies.models import Company
+
+# from apps.notifications.models import Notification
+
+# from apps.accounts.models import User
+
+# from .models import Lead, Product
+# from .serializers import (
+#     LeadListSerializer,
+#     LeadCreateSerializer,
+# )
+
+
+# # =========================================================
+# # LEAD LIST + CREATE
+# # =========================================================
+
+# class LeadListCreateView(APIView):
+
+#     permission_classes = [AllowAny]
+
+#     # GET - List all leads
+#     # Also supports Lead Status filtering
+#     def get(self, request):
+
+#         leads = Lead.objects.all().order_by("-created_date")
+
+#         # -----------------------------------------
+#         # GET STATUS FROM URL
+#         # Example:
+#         # ?lead_status=Open
+#         # -----------------------------------------
+
+#         lead_status = request.query_params.get(
+#             "lead_status",
+#             ""
+#         ).strip()
+
+#         # -----------------------------------------
+#         # FILTER BY STATUS
+#         # -----------------------------------------
+
+#         if lead_status:
+#             leads = leads.filter(
+#                 lead_status=lead_status
+#             )
+
+#         # -----------------------------------------
+#         # SERIALIZE
+#         # -----------------------------------------
+
+#         serializer = LeadListSerializer(
+#             leads,
+#             many=True
+#         )
+
+#         return Response(
+#             serializer.data,
+#             status=status.HTTP_200_OK
+#         )
+
+#     # POST - Create a new lead
+#     def post(self, request):
+
+#         serializer = LeadCreateSerializer(
+#             data=request.data
+#         )
+
+#         if serializer.is_valid():
+
+#             lead = serializer.save()
+
+#             Notification.objects.create(
+#                user=request.user,
+#                title="New Lead Added",
+#                message=f"New lead {lead.first_name} has been added.",
+#             )
+
+#             # Return the lead using the list serializer
+#             response_serializer = LeadListSerializer(lead)
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_201_CREATED
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+
+# # =========================================================
+# # SINGLE LEAD DETAIL + UPDATE + DELETE
+# # =========================================================
+
+# class LeadDetailView(APIView):
+
+#     permission_classes = [AllowAny]
+
+#     def get_object(self, pk):
+
+#         try:
+#             return Lead.objects.prefetch_related(
+#                 "products"
+#             ).get(pk=pk)
+
+#         except Lead.DoesNotExist:
+#             return None
+
+#     # -----------------------------------------
+#     # GET - Get one lead
+#     # -----------------------------------------
+
+#     def get(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         serializer = LeadCreateSerializer(
+#             lead
+#         )
+
+#         return Response(
+#             serializer.data,
+#             status=status.HTTP_200_OK
+#         )
+
+#     # -----------------------------------------
+#     # PUT - Update complete lead
+#     # -----------------------------------------
+
+#     def put(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         serializer = LeadCreateSerializer(
+#             lead,
+#             data=request.data
+#         )
+
+#         if serializer.is_valid():
+
+#             old_status = lead.lead_status
+
+#             lead = serializer.save()
+
+#             if old_status != lead.lead_status:
+
+#                 Notification.objects.create(
+#                   user=request.user,
+#                   title="Lead Status Changed",
+#                   message=f"Lead {lead.first_name} moved from {old_status} to {lead.lead_status}.",
+#                 )
+
+#             else:
+
+#                 Notification.objects.create(
+#                   user=request.user,
+#                   title="Lead Updated",
+#                   message=f"Lead {lead.first_name} has been updated.",
+#                 )
+
+#             response_serializer = LeadListSerializer(lead)
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_200_OK
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+#     # -----------------------------------------
+#     # PATCH - Partially update lead
+#     # -----------------------------------------
+
+#     def patch(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         serializer = LeadCreateSerializer(
+#             lead,
+#             data=request.data,
+#             partial=True
+#         )
+
+#         if serializer.is_valid():
+
+#             old_status = lead.lead_status
+
+#             lead = serializer.save()
+
+#             if old_status != lead.lead_status:
+            
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Status Changed",
+#                     message=f"Lead {lead.first_name} moved from {old_status} to {lead.lead_status}.",
+#                 )
+            
+#             else:
+            
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Updated",
+#                     message=f"Lead {lead.first_name} has been updated.",
+#                 )
+
+#             response_serializer = LeadListSerializer(lead)
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_200_OK
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+#     # -----------------------------------------
+#     # DELETE - Delete lead
+#     # -----------------------------------------
+
+#     def delete(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         lead_name = lead.first_name
+
+#         lead.delete()
+
+#         Notification.objects.create(
+#             user=request.user,
+#             title="Lead Deleted",
+#             message=f"Lead {lead_name} has been deleted.",
+#         )
+
+#         return Response(
+#             {"detail": "Lead deleted successfully"},
+#             status=status.HTTP_204_NO_CONTENT
+#         )
+
+
+# # =========================================================
+# # LEAD STATUS DROPDOWN
+# # =========================================================
+
+# class LeadStatusChoicesView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         statuses = [
+#             {
+#                 "value": value,
+#                 "label": label,
+#             }
+#             for value, label in Lead.STATUS_CHOICES
+#         ]
+
+#         return Response(
+#             statuses,
+#             status=status.HTTP_200_OK
+#         )
+
+
+# # =========================================================
+# # PRODUCTS DROPDOWN
+# # =========================================================
+
+# class ProductListView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         products = Product.objects.all().order_by("name")
+
+#         product_options = [
+#             {
+#                 "value": product.id,
+#                 "label": product.name,
+#             }
+#             for product in products
+#         ]
+
+#         return Response(
+#             product_options,
+#             status=status.HTTP_200_OK
+#         )
+
+
+# # =========================================================
+# # COMPANY DROPDOWN
+# # =========================================================
+
+# # class LeadCompanyListView(APIView):
+
+# #     permission_classes = [IsAuthenticated]
+
+# #     def get(self, request):
+
+# #         users = User.objects.exclude(
+# #             company_name__isnull=True
+# #         ).exclude(
+# #             company_name=""
+# #         ).values(
+# #             "id",
+# #             "company_name"
+# #         ).distinct().order_by(
+# #             "company_name"
+# #         )
+
+# #         company_options = [
+# #             {
+# #                 "value": user["id"],
+# #                 "label": user["company_name"],
+# #             }
+# #             for user in users
+# #         ]
+
+# #         return Response(
+# #             company_options,
+# #             status=status.HTTP_200_OK
+# #         )
+
+
+# class LeadCompanyListView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         companies = Company.objects.all().order_by(
+#             "company_name"
+#         )
+
+#         company_options = [
+#             {
+#                 "value": company.id,
+#                 "label": company.company_name,
+#             }
+#             for company in companies
+#         ]
+
+#         return Response(
+#             company_options,
+#             status=status.HTTP_200_OK
+#         )
+
+
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework import status
+# from rest_framework.permissions import IsAuthenticated
+
+# from apps.companies.models import Company
+# from apps.notifications.models import Notification
+
+# from .models import Lead, Product
+# from .serializers import (
+#     LeadListSerializer,
+#     LeadCreateSerializer,
+# )
+
+
+# # =========================================================
+# # LEAD LIST + CREATE
+# # =========================================================
+
+# class LeadListCreateView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     # GET - List all leads
+#     # Supports Lead Status filtering
+#     def get(self, request):
+
+#         leads = Lead.objects.all().order_by("-created_date")
+
+#         lead_status = request.query_params.get(
+#             "lead_status",
+#             ""
+#         ).strip()
+
+#         if lead_status:
+#             leads = leads.filter(
+#                 lead_status=lead_status
+#             )
+
+#         serializer = LeadListSerializer(
+#             leads,
+#             many=True
+#         )
+
+#         return Response(
+#             serializer.data,
+#             status=status.HTTP_200_OK
+#         )
+
+#     # POST - Create a new lead
+#     def post(self, request):
+
+#         serializer = LeadCreateSerializer(
+#             data=request.data
+#         )
+
+#         if serializer.is_valid():
+
+#             lead = serializer.save()
+
+#             Notification.objects.create(
+#                 user=request.user,
+#                 title="New Lead Added",
+#                 message=f"New lead {lead.first_name} has been added.",
+#             )
+
+#             response_serializer = LeadListSerializer(lead)
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_201_CREATED
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+
+# # =========================================================
+# # SINGLE LEAD DETAIL + UPDATE + DELETE
+# # =========================================================
+
+# class LeadDetailView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get_object(self, pk):
+
+#         try:
+#             return Lead.objects.prefetch_related(
+#                 "products"
+#             ).get(pk=pk)
+
+#         except Lead.DoesNotExist:
+#             return None
+
+#     # =====================================================
+#     # GET - Get one lead
+#     # =====================================================
+
+#     def get(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         serializer = LeadCreateSerializer(
+#             lead
+#         )
+
+#         return Response(
+#             serializer.data,
+#             status=status.HTTP_200_OK
+#         )
+
+#     # =====================================================
+#     # PUT - Update complete lead
+#     # =====================================================
+
+#     def put(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         old_status = lead.lead_status
+
+#         serializer = LeadCreateSerializer(
+#             lead,
+#             data=request.data
+#         )
+
+#         if serializer.is_valid():
+
+#             lead = serializer.save()
+
+#             if old_status != lead.lead_status:
+
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Status Changed",
+#                     message=(
+#                         f"Lead {lead.first_name} moved "
+#                         f"from {old_status} to {lead.lead_status}."
+#                     ),
+#                 )
+
+#             else:
+
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Updated",
+#                     message=(
+#                         f"Lead {lead.first_name} "
+#                         f"has been updated."
+#                     ),
+#                 )
+
+#             response_serializer = LeadListSerializer(
+#                 lead
+#             )
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_200_OK
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+#     # =====================================================
+#     # PATCH - Partially update lead
+#     # =====================================================
+
+#     def patch(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         old_status = lead.lead_status
+
+#         serializer = LeadCreateSerializer(
+#             lead,
+#             data=request.data,
+#             partial=True
+#         )
+
+#         if serializer.is_valid():
+
+#             lead = serializer.save()
+
+#             if old_status != lead.lead_status:
+
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Status Changed",
+#                     message=(
+#                         f"Lead {lead.first_name} moved "
+#                         f"from {old_status} to {lead.lead_status}."
+#                     ),
+#                 )
+
+#             else:
+
+#                 Notification.objects.create(
+#                     user=request.user,
+#                     title="Lead Updated",
+#                     message=(
+#                         f"Lead {lead.first_name} "
+#                         f"has been updated."
+#                     ),
+#                 )
+
+#             response_serializer = LeadListSerializer(
+#                 lead
+#             )
+
+#             return Response(
+#                 response_serializer.data,
+#                 status=status.HTTP_200_OK
+#             )
+
+#         return Response(
+#             serializer.errors,
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
+
+#     # =====================================================
+#     # DELETE - Delete lead
+#     # =====================================================
+
+#     def delete(self, request, pk):
+
+#         lead = self.get_object(pk)
+
+#         if lead is None:
+#             return Response(
+#                 {"detail": "Lead not found"},
+#                 status=status.HTTP_404_NOT_FOUND
+#             )
+
+#         lead_name = lead.first_name
+
+#         lead.delete()
+
+#         Notification.objects.create(
+#             user=request.user,
+#             title="Lead Deleted",
+#             message=f"Lead {lead_name} has been deleted.",
+#         )
+
+#         return Response(
+#             {"detail": "Lead deleted successfully"},
+#             status=status.HTTP_204_NO_CONTENT
+#         )
+
+
+# # =========================================================
+# # LEAD STATUS DROPDOWN
+# # =========================================================
+
+# class LeadStatusChoicesView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         statuses = [
+#             {
+#                 "value": value,
+#                 "label": label,
+#             }
+#             for value, label in Lead.STATUS_CHOICES
+#         ]
+
+#         return Response(
+#             statuses,
+#             status=status.HTTP_200_OK
+#         )
+
+
+# # =========================================================
+# # PRODUCTS DROPDOWN
+# # =========================================================
+
+# class ProductListView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         products = Product.objects.all().order_by("name")
+
+#         product_options = [
+#             {
+#                 "value": product.id,
+#                 "label": product.name,
+#             }
+#             for product in products
+#         ]
+
+#         return Response(
+#             product_options,
+#             status=status.HTTP_200_OK
+#         )
+
+
+# # =========================================================
+# # COMPANY DROPDOWN
+# # =========================================================
+
+# class LeadCompanyListView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         companies = Company.objects.all().order_by(
+#             "company_name"
+#         )
+
+#         company_options = [
+#             {
+#                 "value": company.id,
+#                 "label": company.company_name,
+#             }
+#             for company in companies
+#         ]
+
+#         return Response(
+#             company_options,
+#             status=status.HTTP_200_OK
+#         )
+
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 
-
+from apps.companies.models import Company
 from apps.notifications.models import Notification
-
-from apps.accounts.models import User
 
 from .models import Lead, Product
 from .serializers import (
@@ -19,42 +753,63 @@ from .serializers import (
 
 
 # =========================================================
+# HELPER
+# =========================================================
+
+def is_admin(user):
+    return (
+        getattr(user, "role", "") == "Admin"
+        or user.is_staff
+    )
+
+
+# =========================================================
 # LEAD LIST + CREATE
 # =========================================================
 
 class LeadListCreateView(APIView):
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
-    # GET - List all leads
-    # Also supports Lead Status filtering
+    # -----------------------------------------------------
+    # GET - LIST LEADS
+    # -----------------------------------------------------
+
     def get(self, request):
 
-        leads = Lead.objects.all().order_by("-created_date")
+        # Admin -> all leads
+        if is_admin(request.user):
 
-        # -----------------------------------------
-        # GET STATUS FROM URL
-        # Example:
-        # ?lead_status=Open
-        # -----------------------------------------
+            leads = Lead.objects.all().order_by(
+                "-created_date"
+            )
+
+        # User -> only own leads
+        else:
+
+            leads = Lead.objects.filter(
+                contact_owner=request.user
+            ).order_by(
+                "-created_date"
+            )
+
+        # -------------------------------------------------
+        # FILTER BY LEAD STATUS
+        # -------------------------------------------------
 
         lead_status = request.query_params.get(
             "lead_status",
             ""
         ).strip()
 
-        # -----------------------------------------
-        # FILTER BY STATUS
-        # -----------------------------------------
-
         if lead_status:
             leads = leads.filter(
                 lead_status=lead_status
             )
 
-        # -----------------------------------------
+        # -------------------------------------------------
         # SERIALIZE
-        # -----------------------------------------
+        # -------------------------------------------------
 
         serializer = LeadListSerializer(
             leads,
@@ -66,7 +821,10 @@ class LeadListCreateView(APIView):
             status=status.HTTP_200_OK
         )
 
-    # POST - Create a new lead
+    # -----------------------------------------------------
+    # POST - CREATE LEAD
+    # -----------------------------------------------------
+
     def post(self, request):
 
         serializer = LeadCreateSerializer(
@@ -75,16 +833,32 @@ class LeadListCreateView(APIView):
 
         if serializer.is_valid():
 
-            lead = serializer.save()
-
-            Notification.objects.create(
-               user=request.user,
-               title="New Lead Added",
-               message=f"New lead {lead.first_name} has been added.",
+            # Automatically assign logged-in user
+            # as contact owner
+            lead = serializer.save(
+                contact_owner=request.user
             )
 
-            # Return the lead using the list serializer
-            response_serializer = LeadListSerializer(lead)
+            # -------------------------------------------------
+            # NOTIFICATION
+            # -------------------------------------------------
+
+            Notification.objects.create(
+                user=request.user,
+                title="New Lead Added",
+                message=(
+                    f"New lead {lead.first_name} "
+                    f"has been added."
+                ),
+            )
+
+            # -------------------------------------------------
+            # RESPONSE
+            # -------------------------------------------------
+
+            response_serializer = LeadListSerializer(
+                lead
+            )
 
             return Response(
                 response_serializer.data,
@@ -103,29 +877,47 @@ class LeadListCreateView(APIView):
 
 class LeadDetailView(APIView):
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
-    def get_object(self, pk):
+    # -----------------------------------------------------
+    # GET OBJECT - USER-WISE ACCESS
+    # -----------------------------------------------------
 
-        try:
+    def get_object(self, request, pk):
+
+        # Admin -> any lead
+        if is_admin(request.user):
+
             return Lead.objects.prefetch_related(
                 "products"
-            ).get(pk=pk)
+            ).filter(
+                pk=pk
+            ).first()
 
-        except Lead.DoesNotExist:
-            return None
+        # User -> only own lead
+        return Lead.objects.prefetch_related(
+            "products"
+        ).filter(
+            pk=pk,
+            contact_owner=request.user
+        ).first()
 
-    # -----------------------------------------
-    # GET - Get one lead
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # GET - GET ONE LEAD
+    # -----------------------------------------------------
 
     def get(self, request, pk):
 
-        lead = self.get_object(pk)
+        lead = self.get_object(
+            request,
+            pk
+        )
 
         if lead is None:
             return Response(
-                {"detail": "Lead not found"},
+                {
+                    "detail": "Lead not found"
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -138,19 +930,26 @@ class LeadDetailView(APIView):
             status=status.HTTP_200_OK
         )
 
-    # -----------------------------------------
-    # PUT - Update complete lead
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # PUT - COMPLETE UPDATE
+    # -----------------------------------------------------
 
     def put(self, request, pk):
 
-        lead = self.get_object(pk)
+        lead = self.get_object(
+            request,
+            pk
+        )
 
         if lead is None:
             return Response(
-                {"detail": "Lead not found"},
+                {
+                    "detail": "Lead not found"
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        old_status = lead.lead_status
 
         serializer = LeadCreateSerializer(
             lead,
@@ -159,27 +958,38 @@ class LeadDetailView(APIView):
 
         if serializer.is_valid():
 
-            old_status = lead.lead_status
-
             lead = serializer.save()
+
+            # -------------------------------------------------
+            # STATUS CHANGE NOTIFICATION
+            # -------------------------------------------------
 
             if old_status != lead.lead_status:
 
                 Notification.objects.create(
-                  user=request.user,
-                  title="Lead Status Changed",
-                  message=f"Lead {lead.first_name} moved from {old_status} to {lead.lead_status}.",
+                    user=request.user,
+                    title="Lead Status Changed",
+                    message=(
+                        f"Lead {lead.first_name} moved "
+                        f"from {old_status} "
+                        f"to {lead.lead_status}."
+                    ),
                 )
 
             else:
 
                 Notification.objects.create(
-                  user=request.user,
-                  title="Lead Updated",
-                  message=f"Lead {lead.first_name} has been updated.",
+                    user=request.user,
+                    title="Lead Updated",
+                    message=(
+                        f"Lead {lead.first_name} "
+                        f"has been updated."
+                    ),
                 )
 
-            response_serializer = LeadListSerializer(lead)
+            response_serializer = LeadListSerializer(
+                lead
+            )
 
             return Response(
                 response_serializer.data,
@@ -191,19 +1001,26 @@ class LeadDetailView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # -----------------------------------------
-    # PATCH - Partially update lead
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # PATCH - PARTIAL UPDATE
+    # -----------------------------------------------------
 
     def patch(self, request, pk):
 
-        lead = self.get_object(pk)
+        lead = self.get_object(
+            request,
+            pk
+        )
 
         if lead is None:
             return Response(
-                {"detail": "Lead not found"},
+                {
+                    "detail": "Lead not found"
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        old_status = lead.lead_status
 
         serializer = LeadCreateSerializer(
             lead,
@@ -213,27 +1030,38 @@ class LeadDetailView(APIView):
 
         if serializer.is_valid():
 
-            old_status = lead.lead_status
-
             lead = serializer.save()
 
+            # -------------------------------------------------
+            # STATUS CHANGE NOTIFICATION
+            # -------------------------------------------------
+
             if old_status != lead.lead_status:
-            
+
                 Notification.objects.create(
                     user=request.user,
                     title="Lead Status Changed",
-                    message=f"Lead {lead.first_name} moved from {old_status} to {lead.lead_status}.",
+                    message=(
+                        f"Lead {lead.first_name} moved "
+                        f"from {old_status} "
+                        f"to {lead.lead_status}."
+                    ),
                 )
-            
+
             else:
-            
+
                 Notification.objects.create(
                     user=request.user,
                     title="Lead Updated",
-                    message=f"Lead {lead.first_name} has been updated.",
+                    message=(
+                        f"Lead {lead.first_name} "
+                        f"has been updated."
+                    ),
                 )
 
-            response_serializer = LeadListSerializer(lead)
+            response_serializer = LeadListSerializer(
+                lead
+            )
 
             return Response(
                 response_serializer.data,
@@ -245,17 +1073,22 @@ class LeadDetailView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # -----------------------------------------
-    # DELETE - Delete lead
-    # -----------------------------------------
+    # -----------------------------------------------------
+    # DELETE - DELETE LEAD
+    # -----------------------------------------------------
 
     def delete(self, request, pk):
 
-        lead = self.get_object(pk)
+        lead = self.get_object(
+            request,
+            pk
+        )
 
         if lead is None:
             return Response(
-                {"detail": "Lead not found"},
+                {
+                    "detail": "Lead not found"
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -263,14 +1096,23 @@ class LeadDetailView(APIView):
 
         lead.delete()
 
+        # -------------------------------------------------
+        # NOTIFICATION
+        # -------------------------------------------------
+
         Notification.objects.create(
             user=request.user,
             title="Lead Deleted",
-            message=f"Lead {lead_name} has been deleted.",
+            message=(
+                f"Lead {lead_name} "
+                f"has been deleted."
+            ),
         )
 
         return Response(
-            {"detail": "Lead deleted successfully"},
+            {
+                "detail": "Lead deleted successfully"
+            },
             status=status.HTTP_204_NO_CONTENT
         )
 
@@ -309,7 +1151,9 @@ class ProductListView(APIView):
 
     def get(self, request):
 
-        products = Product.objects.all().order_by("name")
+        products = Product.objects.all().order_by(
+            "name"
+        )
 
         product_options = [
             {
@@ -335,23 +1179,28 @@ class LeadCompanyListView(APIView):
 
     def get(self, request):
 
-        users = User.objects.exclude(
-            company_name__isnull=True
-        ).exclude(
-            company_name=""
-        ).values(
-            "id",
-            "company_name"
-        ).distinct().order_by(
-            "company_name"
-        )
+        # Admin -> all companies
+        if is_admin(request.user):
+
+            companies = Company.objects.all().order_by(
+                "company_name"
+            )
+
+        # User -> only own companies
+        else:
+
+            companies = Company.objects.filter(
+                company_owner=request.user
+            ).order_by(
+                "company_name"
+            )
 
         company_options = [
             {
-                "value": user["id"],
-                "label": user["company_name"],
+                "value": company.id,
+                "label": company.company_name,
             }
-            for user in users
+            for company in companies
         ]
 
         return Response(

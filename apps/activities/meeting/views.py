@@ -1,11 +1,12 @@
+
+
+
 from django.shortcuts import get_object_or_404
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-
-from apps.notifications.models import Notification
 
 from .models import Meeting
 from .serializers import (
@@ -79,19 +80,6 @@ class MeetingListCreateView(APIView):
 
         if not serializer.is_valid():
 
-            meeting = serializer.save()
-
-            Notification.objects.create(
-               user=request.user,
-               title="New Meeting Added",
-               message=f"Meeting {meeting.title} has been created.",
-            )
-
-            response_serializer = (
-                MeetingResponseSerializer(
-                    meeting
-                )
-            )
             print("\n=================================")
             print("MEETING VALIDATION ERROR")
             print(serializer.errors)
@@ -162,6 +150,23 @@ class DealMeetingListView(APIView):
         print("FETCH DEAL MEETINGS")
         print("DEAL ID:", deal_id)
         print("=================================\n")
+
+        # meetings = (
+        #     Meeting.objects
+        #     .select_related(
+        #         "owner",
+        #         "activity",
+        #         "activity__content_type",
+        #     )
+        #     .prefetch_related(
+        #         "attendees"
+        #     )
+        #     .filter(
+        #         activity__content_type__model="deal",
+        #         activity__object_id=deal_id,
+        #     )
+        #     .order_by("-id")
+        # )
 
         meetings = (
             Meeting.objects
@@ -295,21 +300,6 @@ class MeetingDetailView(APIView):
             data=data
         )
 
-        if serializer.is_valid():
-
-            meeting = serializer.save()
-
-            Notification.objects.create(
-               user=request.user,
-               title="Meeting Updated",
-               message=f"Meeting {meeting.title} has been updated.",
-            )
-
-            response_serializer = (
-                MeetingResponseSerializer(
-                    meeting
-                )
-            )
         if not serializer.is_valid():
 
             return Response(
@@ -350,21 +340,6 @@ class MeetingDetailView(APIView):
             partial=True
         )
 
-        if serializer.is_valid():
-
-            meeting = serializer.save()
-
-            Notification.objects.create(
-               user=request.user,
-               title="Meeting Updated",
-               message=f"Meeting {meeting.title} has been updated.",
-            )
-
-            response_serializer = (
-                MeetingResponseSerializer(
-                    meeting
-                )
-            )
         if not serializer.is_valid():
 
             return Response(
@@ -394,15 +369,7 @@ class MeetingDetailView(APIView):
             pk=pk
         )
 
-        meeting_title = meeting.title
-
         meeting.delete()
-
-        Notification.objects.create(
-           user=request.user,
-           title="Meeting Deleted",
-           message=f"Meeting {meeting_title} has been deleted.",
-        )
 
         return Response(
             {
