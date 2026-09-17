@@ -1,31 +1,29 @@
 
+from django.conf import settings
+from django.db import models
+
+from apps.companies.models import Company
 
 
-from django.conf import settings 
-from django.db import models 
- 
-from apps.companies.models import Company 
- 
- 
-class Product(models.Model): 
- 
-    name = models.CharField( 
-        max_length=100, 
-        unique=True 
-    ) 
- 
-    description = models.TextField( 
-        blank=True, 
-        null=True 
-    ) 
- 
-    created_at = models.DateTimeField( 
-        auto_now_add=True 
-    ) 
- 
-    def __str__(self): 
-        return self.name 
- 
+class Product(models.Model):
+
+    name = models.CharField(
+        max_length=100,
+        unique=True
+    )
+
+    description = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.name
+
 
 class Lead(models.Model):
 
@@ -58,13 +56,19 @@ class Lead(models.Model):
         null=True
     )
 
-    contact_owner = models.ForeignKey(
+    # =====================================================
+    # CONTACT OWNERS - MULTIPLE USERS
+    # =====================================================
+
+    contact_owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name="assigned_leads"
     )
+
+    # =====================================================
+    # LEAD STATUS
+    # =====================================================
 
     lead_status = models.CharField(
         max_length=30,
@@ -72,11 +76,19 @@ class Lead(models.Model):
         default="New"
     )
 
+    # =====================================================
+    # PRODUCTS
+    # =====================================================
+
     products = models.ManyToManyField(
         Product,
         related_name="leads",
         blank=True
     )
+
+    # =====================================================
+    # COMPANY
+    # =====================================================
 
     company = models.ForeignKey(
         Company,
@@ -86,11 +98,19 @@ class Lead(models.Model):
         related_name="company_leads"
     )
 
+    # =====================================================
+    # CITY
+    # =====================================================
+
     city = models.CharField(
         max_length=100,
         blank=True,
         null=True
     )
+
+    # =====================================================
+    # CREATED DATE
+    # =====================================================
 
     created_date = models.DateTimeField(
         auto_now_add=True

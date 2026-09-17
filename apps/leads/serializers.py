@@ -1,14 +1,23 @@
 
+from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
 from .models import Lead, Product
 
 
+User = get_user_model()
+
+
+# =========================================================
+# PRODUCT SERIALIZER
+# =========================================================
+
 class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
+
         fields = [
             "id",
             "name",
@@ -33,6 +42,7 @@ class LeadListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lead
+
         fields = [
             "id",
             "name",
@@ -58,8 +68,22 @@ class LeadListSerializer(serializers.ModelSerializer):
 
 class LeadCreateSerializer(serializers.ModelSerializer):
 
+    # =====================================================
+    # PRODUCTS - MULTIPLE
+    # =====================================================
+
     products = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(),
+        many=True,
+        required=False
+    )
+
+    # =====================================================
+    # CONTACT OWNERS - MULTIPLE
+    # =====================================================
+
+    contact_owners = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
         many=True,
         required=False
     )
@@ -74,7 +98,7 @@ class LeadCreateSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "job_title",
-            "contact_owner",
+            "contact_owners",
             "lead_status",
             "products",
             "company",
@@ -86,3 +110,4 @@ class LeadCreateSerializer(serializers.ModelSerializer):
             "id",
             "created_date",
         ]
+

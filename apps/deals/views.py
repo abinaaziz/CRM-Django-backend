@@ -1,4 +1,3 @@
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -41,19 +40,33 @@ class DealListCreateView(APIView):
         if is_admin(request.user):
 
             # Admin -> all deals
-            deals = Deal.objects.select_related(
-                "associated_lead",
-                "deal_owner",
-            ).all()
+            deals = (
+                Deal.objects
+                .select_related(
+                    "associated_lead",
+                )
+                .prefetch_related(
+                    "deal_owners",
+                )
+                .all()
+            )
 
         else:
 
-            # User -> only own deals
-            deals = Deal.objects.select_related(
-                "associated_lead",
-                "deal_owner",
-            ).filter(
-                deal_owner=request.user
+            # User -> deals where the user is one of
+            # the selected Deal Owners
+            deals = (
+                Deal.objects
+                .select_related(
+                    "associated_lead",
+                )
+                .prefetch_related(
+                    "deal_owners",
+                )
+                .filter(
+                    deal_owners=request.user
+                )
+                .distinct()
             )
 
         serializer = DealListSerializer(
@@ -78,12 +91,22 @@ class DealListCreateView(APIView):
 
         if serializer.is_valid():
 
-            # Automatically assign logged-in user as owner
-            deal = serializer.save(
-                deal_owner=request.user
-            )
+            # Deal Owners are supplied from the frontend
+            #
+            # Example:
+            # {
+            #     "deal_owners": [1, 5, 8]
+            # }
+            #
+            # The serializer handles the ManyToMany
+            # relationship.
 
-            # Notification
+            deal = serializer.save()
+
+            # ------------------------------------------------
+            # NOTIFICATION
+            # ------------------------------------------------
+
             Notification.objects.create(
                 user=request.user,
                 title="New Deal Added",
@@ -93,8 +116,25 @@ class DealListCreateView(APIView):
                 ),
             )
 
+            # ------------------------------------------------
+            # RESPONSE
+            # ------------------------------------------------
+
+            response_deal = (
+                Deal.objects
+                .select_related(
+                    "associated_lead",
+                )
+                .prefetch_related(
+                    "deal_owners",
+                )
+                .get(
+                    pk=deal.pk
+                )
+            )
+
             response_serializer = DealListSerializer(
-                deal
+                response_deal
             )
 
             return Response(
@@ -126,12 +166,22 @@ class DealDetailView(APIView):
 
             # Admin -> any deal
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(pk=pk)
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk
+                    )
+                )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -141,17 +191,26 @@ class DealDetailView(APIView):
 
         else:
 
-            # User -> only own deal
+            # User -> only deals where the user
+            # is one of the Deal Owners
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(
-                    pk=pk,
-                    deal_owner=request.user
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk,
+                        deal_owners=request.user
+                    )
                 )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -159,7 +218,9 @@ class DealDetailView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
-        serializer = DealListSerializer(deal)
+        serializer = DealListSerializer(
+            deal
+        )
 
         return Response(
             serializer.data,
@@ -176,12 +237,22 @@ class DealDetailView(APIView):
 
             # Admin -> can update any deal
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(pk=pk)
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk
+                    )
+                )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -191,17 +262,26 @@ class DealDetailView(APIView):
 
         else:
 
-            # User -> can update only own deal
+            # User -> can update only a deal where
+            # the user is one of the Deal Owners
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(
-                    pk=pk,
-                    deal_owner=request.user
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk,
+                        deal_owners=request.user
+                    )
                 )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -209,7 +289,15 @@ class DealDetailView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+        # -------------------------------------------------
+        # OLD STAGE
+        # -------------------------------------------------
+
         old_stage = deal.deal_stage
+
+        # -------------------------------------------------
+        # SERIALIZER
+        # -------------------------------------------------
 
         serializer = DealCreateSerializer(
             deal,
@@ -220,7 +308,10 @@ class DealDetailView(APIView):
 
             deal = serializer.save()
 
-            # Stage change notification
+            # ------------------------------------------------
+            # STAGE CHANGE NOTIFICATION
+            # ------------------------------------------------
+
             if old_stage != deal.deal_stage:
 
                 if deal.deal_stage == "Closed Won":
@@ -259,6 +350,10 @@ class DealDetailView(APIView):
 
             else:
 
+                # ------------------------------------------------
+                # NORMAL UPDATE NOTIFICATION
+                # ------------------------------------------------
+
                 Notification.objects.create(
                     user=request.user,
                     title="Deal Updated",
@@ -268,8 +363,25 @@ class DealDetailView(APIView):
                     ),
                 )
 
+            # ------------------------------------------------
+            # REFRESH DEAL WITH OWNERS
+            # ------------------------------------------------
+
+            response_deal = (
+                Deal.objects
+                .select_related(
+                    "associated_lead",
+                )
+                .prefetch_related(
+                    "deal_owners",
+                )
+                .get(
+                    pk=deal.pk
+                )
+            )
+
             response_serializer = DealListSerializer(
-                deal
+                response_deal
             )
 
             return Response(
@@ -292,12 +404,22 @@ class DealDetailView(APIView):
 
             # Admin -> can update any deal
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(pk=pk)
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk
+                    )
+                )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -307,17 +429,26 @@ class DealDetailView(APIView):
 
         else:
 
-            # User -> can update only own deal
+            # User -> can update only a deal where
+            # the user is one of the Deal Owners
             try:
-                deal = Deal.objects.select_related(
-                    "associated_lead",
-                    "deal_owner",
-                ).get(
-                    pk=pk,
-                    deal_owner=request.user
+
+                deal = (
+                    Deal.objects
+                    .select_related(
+                        "associated_lead",
+                    )
+                    .prefetch_related(
+                        "deal_owners",
+                    )
+                    .get(
+                        pk=pk,
+                        deal_owners=request.user
+                    )
                 )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -325,7 +456,15 @@ class DealDetailView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+        # -------------------------------------------------
+        # OLD STAGE
+        # -------------------------------------------------
+
         old_stage = deal.deal_stage
+
+        # -------------------------------------------------
+        # SERIALIZER
+        # -------------------------------------------------
 
         serializer = DealCreateSerializer(
             deal,
@@ -337,7 +476,10 @@ class DealDetailView(APIView):
 
             deal = serializer.save()
 
-            # Stage change notification
+            # ------------------------------------------------
+            # STAGE CHANGE NOTIFICATION
+            # ------------------------------------------------
+
             if old_stage != deal.deal_stage:
 
                 if deal.deal_stage == "Closed Won":
@@ -376,6 +518,10 @@ class DealDetailView(APIView):
 
             else:
 
+                # ------------------------------------------------
+                # NORMAL UPDATE NOTIFICATION
+                # ------------------------------------------------
+
                 Notification.objects.create(
                     user=request.user,
                     title="Deal Updated",
@@ -385,8 +531,25 @@ class DealDetailView(APIView):
                     ),
                 )
 
+            # ------------------------------------------------
+            # REFRESH DEAL WITH OWNERS
+            # ------------------------------------------------
+
+            response_deal = (
+                Deal.objects
+                .select_related(
+                    "associated_lead",
+                )
+                .prefetch_related(
+                    "deal_owners",
+                )
+                .get(
+                    pk=deal.pk
+                )
+            )
+
             response_serializer = DealListSerializer(
-                deal
+                response_deal
             )
 
             return Response(
@@ -409,9 +572,13 @@ class DealDetailView(APIView):
 
             # Admin -> can delete any deal
             try:
-                deal = Deal.objects.get(pk=pk)
+
+                deal = Deal.objects.get(
+                    pk=pk
+                )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -421,14 +588,17 @@ class DealDetailView(APIView):
 
         else:
 
-            # User -> can delete only own deal
+            # User -> can delete only a deal where
+            # the user is one of the Deal Owners
             try:
+
                 deal = Deal.objects.get(
                     pk=pk,
-                    deal_owner=request.user
+                    deal_owners=request.user
                 )
 
             except Deal.DoesNotExist:
+
                 return Response(
                     {
                         "detail": "Deal not found."
@@ -436,9 +606,21 @@ class DealDetailView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
 
+        # -------------------------------------------------
+        # SAVE NAME BEFORE DELETE
+        # -------------------------------------------------
+
         deal_name = deal.deal_name
 
+        # -------------------------------------------------
+        # DELETE
+        # -------------------------------------------------
+
         deal.delete()
+
+        # -------------------------------------------------
+        # NOTIFICATION
+        # -------------------------------------------------
 
         Notification.objects.create(
             user=request.user,
@@ -479,3 +661,4 @@ class DealStageListView(APIView):
             stages,
             status=status.HTTP_200_OK
         )
+

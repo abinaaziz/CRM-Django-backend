@@ -1,3 +1,5 @@
+
+
 from rest_framework import serializers
 
 from .models import Deal
@@ -26,7 +28,7 @@ class DealCreateSerializer(serializers.ModelSerializer):
             "lead_name",
             "lead_phone",
             "amount",
-            "deal_owner",
+            "deal_owners",
             "close_date",
             "priority",
             "created_date",
@@ -72,7 +74,10 @@ class DealCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
+        # ----------------------------------------------------
         # Get the selected Lead
+        # ----------------------------------------------------
+
         lead = validated_data["associated_lead"]
 
         # ----------------------------------------------------
@@ -86,11 +91,31 @@ class DealCreateSerializer(serializers.ModelSerializer):
             })
 
         # ----------------------------------------------------
+        # Get selected Deal Owners
+        #
+        # ManyToMany fields cannot be passed directly into
+        # Deal.objects.create().
+        # ----------------------------------------------------
+
+        deal_owners = validated_data.pop(
+            "deal_owners",
+            []
+        )
+
+        # ----------------------------------------------------
         # CREATE DEAL
         # ----------------------------------------------------
 
         deal = Deal.objects.create(
             **validated_data
+        )
+
+        # ----------------------------------------------------
+        # SAVE MULTIPLE DEAL OWNERS
+        # ----------------------------------------------------
+
+        deal.deal_owners.set(
+            deal_owners
         )
 
         # ----------------------------------------------------
@@ -121,7 +146,16 @@ class DealCreateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
 
         # ----------------------------------------------------
-        # UPDATE ONLY THE DEAL
+        # Get Deal Owners separately
+        # ----------------------------------------------------
+
+        deal_owners = validated_data.pop(
+            "deal_owners",
+            None
+        )
+
+        # ----------------------------------------------------
+        # UPDATE DEAL
         #
         # IMPORTANT:
         # Changing Deal stage must NOT change Lead status.
@@ -131,6 +165,19 @@ class DealCreateSerializer(serializers.ModelSerializer):
             instance,
             validated_data
         )
+
+        # ----------------------------------------------------
+        # UPDATE MULTIPLE DEAL OWNERS
+        #
+        # Only update owners when the field was actually
+        # supplied in the request.
+        # ----------------------------------------------------
+
+        if deal_owners is not None:
+
+            instance.deal_owners.set(
+                deal_owners
+            )
 
         return instance
 
@@ -147,12 +194,13 @@ class DealListSerializer(serializers.ModelSerializer):
     # Lead phone number
     lead_phone = serializers.SerializerMethodField()
 
-    # Owner display name
-    deal_owner = serializers.SerializerMethodField()
+    # Deal owner display names
+    deal_owners = serializers.SerializerMethodField()
 
-    # Owner ID for Edit
-    deal_owner_id = serializers.IntegerField(
-        source="deal_owner.id",
+    # Owner IDs for Edit
+    deal_owner_ids = serializers.PrimaryKeyRelatedField(
+        source="deal_owners",
+        many=True,
         read_only=True
     )
 
@@ -167,8 +215,8 @@ class DealListSerializer(serializers.ModelSerializer):
             "lead_phone",
             "deal_stage",
             "close_date",
-            "deal_owner",
-            "deal_owner_id",
+            "deal_owners",
+            "deal_owner_ids",
             "amount",
             "priority",
             "created_date",
@@ -200,15 +248,18 @@ class DealListSerializer(serializers.ModelSerializer):
         return obj.associated_lead.phone_number or ""
 
     # ========================================================
-    # OWNER NAME
+    # OWNER NAMES
     # ========================================================
 
-    def get_deal_owner(self, obj):
+    def get_deal_owners(self, obj):
 
-        if not obj.deal_owner:
-            return ""
+        owners = obj.deal_owners.all()
 
-        return (
-            f"{obj.deal_owner.first_name} "
-            f"{obj.deal_owner.last_name}"
-        ).strip()
+        return [
+            (
+                f"{owner.first_name} "
+                f"{owner.last_name}"
+            ).strip()
+            for owner in owners
+        ]
+

@@ -1,4 +1,5 @@
 
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -46,12 +47,12 @@ class LeadListCreateView(APIView):
                 "-created_date"
             )
 
-        # User -> only own leads
+        # User -> only leads assigned to that user
         else:
 
             leads = Lead.objects.filter(
-                contact_owner=request.user
-            ).order_by(
+                contact_owners=request.user
+            ).distinct().order_by(
                 "-created_date"
             )
 
@@ -95,11 +96,25 @@ class LeadListCreateView(APIView):
 
         if serializer.is_valid():
 
-            # Automatically assign logged-in user
-            # as contact owner
-            lead = serializer.save(
-                contact_owner=request.user
-            )
+            # -------------------------------------------------
+            # CREATE LEAD
+            # -------------------------------------------------
+            #
+            # Contact owners are now supplied as multiple IDs
+            # through the contact_owners field.
+            #
+            # Example:
+            # {
+            #     "contact_owners": [1, 5, 8]
+            # }
+            #
+            # Do NOT use:
+            # serializer.save(contact_owner=request.user)
+            #
+            # because contact_owner is no longer a ForeignKey.
+            # -------------------------------------------------
+
+            lead = serializer.save()
 
             # -------------------------------------------------
             # NOTIFICATION
@@ -151,17 +166,19 @@ class LeadDetailView(APIView):
         if is_admin(request.user):
 
             return Lead.objects.prefetch_related(
-                "products"
+                "products",
+                "contact_owners",
             ).filter(
                 pk=pk
             ).first()
 
-        # User -> only own lead
+        # User -> only leads assigned to that user
         return Lead.objects.prefetch_related(
-            "products"
+            "products",
+            "contact_owners",
         ).filter(
             pk=pk,
-            contact_owner=request.user
+            contact_owners=request.user
         ).first()
 
     # -----------------------------------------------------
@@ -249,6 +266,10 @@ class LeadDetailView(APIView):
                     ),
                 )
 
+            # -------------------------------------------------
+            # RESPONSE
+            # -------------------------------------------------
+
             response_serializer = LeadListSerializer(
                 lead
             )
@@ -320,6 +341,10 @@ class LeadDetailView(APIView):
                         f"has been updated."
                     ),
                 )
+
+            # -------------------------------------------------
+            # RESPONSE
+            # -------------------------------------------------
 
             response_serializer = LeadListSerializer(
                 lead
@@ -469,3 +494,4 @@ class LeadCompanyListView(APIView):
             company_options,
             status=status.HTTP_200_OK
         )
+

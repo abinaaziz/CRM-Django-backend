@@ -1,10 +1,14 @@
-
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 
 class Call(models.Model):
+
+    CALL_MODE_CHOICES = [
+        ("direct", "Direct"),
+        ("bridge", "Bridge"),
+    ]
 
     CALL_OUTCOME_CHOICES = [
         ("connected", "Connected"),
@@ -54,6 +58,16 @@ class Call(models.Model):
     connected = GenericForeignKey(
         "connected_content_type",
         "connected_object_id",
+    )
+
+    # =========================================================
+    # CALL MODE
+    # =========================================================
+
+    call_mode = models.CharField(
+        max_length=20,
+        choices=CALL_MODE_CHOICES,
+        default="direct",
     )
 
     # =========================================================
@@ -158,5 +172,3 @@ class Call(models.Model):
 
     def __str__(self):
         return f"Call - {self.date} {self.time}"
-
-

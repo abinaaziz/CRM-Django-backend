@@ -45,10 +45,10 @@ class Deal(models.Model):
         decimal_places=2
     )
 
-    # Contact owner of the selected Lead
-    deal_owner = models.ForeignKey(
+    # Multiple Deal Owners
+    deal_owners = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        blank=True,
         related_name="owned_deals"
     )
 
@@ -69,3 +69,5 @@ class Deal(models.Model):
 
     def __str__(self):
         return self.deal_name
+
+

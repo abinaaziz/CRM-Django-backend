@@ -1,5 +1,3 @@
-
-
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
@@ -66,7 +64,16 @@ class CallSerializer(serializers.ModelSerializer):
         model = Call
 
         fields = [
+            # ------------------------------------------------
+            # Basic
+            # ------------------------------------------------
+
             "id",
+
+            # ------------------------------------------------
+            # User
+            # ------------------------------------------------
+
             "created_by",
 
             # ------------------------------------------------
@@ -87,15 +94,9 @@ class CallSerializer(serializers.ModelSerializer):
             # Twilio information
             # ------------------------------------------------
 
-            # Legacy / primary SID
             "twilio_call_sid",
-
-            # First leg: Twilio → CRM User
             "user_twilio_call_sid",
-
-            # Second leg: CRM User ↔ Customer
             "customer_twilio_call_sid",
-
             "twilio_status",
             "duration",
 
@@ -123,22 +124,15 @@ class CallSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
+
             "created_by",
             "connected",
-
-            # ------------------------------------------------
-            # Twilio-controlled fields
-            # ------------------------------------------------
 
             "twilio_call_sid",
             "user_twilio_call_sid",
             "customer_twilio_call_sid",
             "twilio_status",
             "duration",
-
-            # ------------------------------------------------
-            # Timestamps
-            # ------------------------------------------------
 
             "created_at",
             "updated_at",
@@ -149,6 +143,34 @@ class CallSerializer(serializers.ModelSerializer):
     # ========================================================
 
     def validate(self, attrs):
+
+        # ====================================================
+        # UPDATE / PATCH
+        #
+        # Example:
+        # PATCH /activities/call/10/
+        #
+        # {
+        #     "call_outcome": "connected"
+        # }
+        #
+        # For PATCH we do NOT require module/sender again.
+        # ====================================================
+
+        if self.instance is not None:
+
+            duration = attrs.get("duration")
+
+            if duration is not None and duration < 0:
+                raise serializers.ValidationError({
+                    "duration": "Duration cannot be negative."
+                })
+
+            return attrs
+
+        # ====================================================
+        # CREATE
+        # ====================================================
 
         # ----------------------------------------------------
         # Module
@@ -162,10 +184,11 @@ class CallSerializer(serializers.ModelSerializer):
             })
 
         module = module.strip().lower()
+
         attrs["module"] = module
 
         # ----------------------------------------------------
-        # Validate module name
+        # Validate module
         # ----------------------------------------------------
 
         if module not in MODULE_MAP:
@@ -188,18 +211,20 @@ class CallSerializer(serializers.ModelSerializer):
             })
 
         # ----------------------------------------------------
-        # Get ContentType
+        # ContentType
         # ----------------------------------------------------
 
         app_label, model_name = MODULE_MAP[module]
 
         try:
+
             content_type = ContentType.objects.get(
                 app_label=app_label,
                 model=model_name,
             )
 
         except ContentType.DoesNotExist:
+
             raise serializers.ValidationError({
                 "module": (
                     f"Content type for '{module}' "
@@ -208,12 +233,13 @@ class CallSerializer(serializers.ModelSerializer):
             })
 
         # ----------------------------------------------------
-        # Get actual model class
+        # Model class
         # ----------------------------------------------------
 
         model_class = content_type.model_class()
 
         if not model_class:
+
             raise serializers.ValidationError({
                 "module": (
                     f"Model for '{module}' "
@@ -222,7 +248,7 @@ class CallSerializer(serializers.ModelSerializer):
             })
 
         # ----------------------------------------------------
-        # Validate CRM record exists
+        # CRM record exists
         # ----------------------------------------------------
 
         if not model_class.objects.filter(
@@ -243,6 +269,7 @@ class CallSerializer(serializers.ModelSerializer):
         sender_id = attrs.get("sender_id")
 
         if not sender_id:
+
             raise serializers.ValidationError({
                 "sender_id": "Sender ID is required."
             })
@@ -265,6 +292,7 @@ class CallSerializer(serializers.ModelSerializer):
         duration = attrs.get("duration")
 
         if duration is not None and duration < 0:
+
             raise serializers.ValidationError({
                 "duration": (
                     "Duration cannot be negative."
@@ -280,16 +308,12 @@ class CallSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
 
-        # ----------------------------------------------------
-        # Remove activity-related fields
-        # ----------------------------------------------------
-
         module = validated_data.pop("module")
         module_id = validated_data.pop("module_id")
         sender_id = validated_data.pop("sender_id")
 
         # ----------------------------------------------------
-        # Get ContentType
+        # ContentType
         # ----------------------------------------------------
 
         app_label, model_name = MODULE_MAP[module]
@@ -300,7 +324,7 @@ class CallSerializer(serializers.ModelSerializer):
         )
 
         # ----------------------------------------------------
-        # Create Activity
+        # Activity
         # ----------------------------------------------------
 
         activity = Activity.objects.create(
@@ -311,7 +335,7 @@ class CallSerializer(serializers.ModelSerializer):
         )
 
         # ----------------------------------------------------
-        # Create Call
+        # Call
         # ----------------------------------------------------
 
         call = Call.objects.create(
@@ -330,7 +354,8 @@ class CallSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
 
         # ----------------------------------------------------
-        # Activity connection must not be changed
+        # These belong to the original call relationship.
+        # They should not be changed during Outcome PATCH.
         # ----------------------------------------------------
 
         validated_data.pop("module", None)
@@ -356,16 +381,19 @@ class CallSerializer(serializers.ModelSerializer):
         if not user:
             return None
 
+        full_name = user.get_full_name()
+
         return {
             "id": user.id,
             "name": (
-                user.get_full_name()
+                full_name
                 or user.email
+                or "Unknown"
             ),
         }
 
     # ========================================================
-    # CONNECTED RECORD NAME
+    # CONNECTED RECORD
     # ========================================================
 
     def get_connected(self, obj):
@@ -381,7 +409,10 @@ class CallSerializer(serializers.ModelSerializer):
         # Lead
         # ----------------------------------------------------
 
-        if hasattr(connected_object, "first_name"):
+        if hasattr(
+            connected_object,
+            "first_name"
+        ):
 
             first_name = getattr(
                 connected_object,
@@ -400,6 +431,7 @@ class CallSerializer(serializers.ModelSerializer):
             ).strip()
 
             if not name:
+
                 name = getattr(
                     connected_object,
                     "email",
@@ -465,4 +497,3 @@ class CallSerializer(serializers.ModelSerializer):
             "id": connected_object.id,
             "name": name or str(connected_object),
         }
-
