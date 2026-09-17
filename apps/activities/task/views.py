@@ -5,11 +5,15 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 
 from .models import Task
 from .serializers import TaskSerializer
 
 from apps.notifications.models import Notification
+
+
+User = get_user_model()
 
 
 # ========================================
@@ -67,18 +71,19 @@ class TaskListCreateView(APIView):
         task = serializer.save()
 
         Notification.objects.create(
-           user=request.user,
-           title="New Task Added",
-           message=f"Task {task.task_name} has been created.",
+            user=request.user,
+            title="New Task Added",
+            message=f"Task {task.task_name} has been created.",
         )
 
         return Response(
             TaskSerializer(
-               task,
-               context={"request": request}
+                task,
+                context={"request": request},
             ).data,
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
+
 
 # ========================================
 # TASK OPTIONS
@@ -90,8 +95,6 @@ class TaskOptionsView(APIView):
 
     def get(self, request):
 
-        User = get_user_model()
-
         # ====================================
         # TASK TYPES
         # ====================================
@@ -101,8 +104,7 @@ class TaskOptionsView(APIView):
                 "value": value,
                 "label": label,
             }
-            for value, label
-            in Task.TASK_TYPE_CHOICES
+            for value, label in Task.TASK_TYPE_CHOICES
         ]
 
         # ====================================
@@ -114,22 +116,62 @@ class TaskOptionsView(APIView):
                 "value": value,
                 "label": label,
             }
-            for value, label
-            in Task.PRIORITY_CHOICES
+            for value, label in Task.PRIORITY_CHOICES
         ]
 
         # ====================================
         # USERS
         # ====================================
 
-        users = (
-            User.objects
-            .filter(is_active=True)
-            .order_by(
+        module = request.query_params.get("module")
+        module_id = request.query_params.get("module_id")
+
+        users = User.objects.filter(
+            is_active=True
+        )
+
+        # ------------------------------------
+        # LEAD TASK
+        # ------------------------------------
+        #
+        # If Task is being created for a Lead,
+        # only that Lead's contact owners should
+        # appear in Assigned To.
+        #
+        # Example:
+        #
+        # /task/options/?module=lead&module_id=39
+        #
+        # ------------------------------------
+
+        if module == "lead" and module_id:
+
+            try:
+                from apps.leads.models import Lead
+
+                lead = (
+                    Lead.objects
+                    .prefetch_related("contact_owners")
+                    .get(pk=module_id)
+                )
+
+                users = lead.contact_owners.filter(
+                    is_active=True
+                ).order_by(
+                    "first_name",
+                    "last_name",
+                )
+
+            except Lead.DoesNotExist:
+
+                users = User.objects.none()
+
+        else:
+
+            users = users.order_by(
                 "first_name",
                 "last_name",
             )
-        )
 
         assigned_users = [
             {
@@ -240,9 +282,9 @@ class TaskDetailView(APIView):
         task = serializer.save()
 
         Notification.objects.create(
-           user=request.user,
-           title="Task Updated",
-           message=f"Task {task.task_name} has been updated.",
+            user=request.user,
+            title="Task Updated",
+            message=f"Task {task.task_name} has been updated.",
         )
 
         return Response(
@@ -284,9 +326,9 @@ class TaskDetailView(APIView):
         task = serializer.save()
 
         Notification.objects.create(
-           user=request.user,
-           title="Task Updated",
-           message=f"Task {task.task_name} has been updated.",
+            user=request.user,
+            title="Task Updated",
+            message=f"Task {task.task_name} has been updated.",
         )
 
         return Response(
@@ -313,17 +355,18 @@ class TaskDetailView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-        
+
         task_name = task.task_name
 
         task.delete()
 
         Notification.objects.create(
-           user=request.user,
-           title="Task Deleted",
-           message=f"Task {task_name} has been deleted.",
+            user=request.user,
+            title="Task Deleted",
+            message=f"Task {task_name} has been deleted.",
         )
 
         return Response(
             status=status.HTTP_204_NO_CONTENT
         )
+

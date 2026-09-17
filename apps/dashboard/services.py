@@ -1,11 +1,11 @@
-from django.db.models import Count, Q, Sum, Value, DecimalField
-from django.db.models.functions import TruncMonth,TruncQuarter, TruncYear,Coalesce
-from django.utils import timezone
-
 from django.contrib.auth import get_user_model
+from django.db.models import Count, DecimalField, Q, Sum, Value
+from django.db.models.functions import Coalesce, TruncMonth, TruncQuarter, TruncYear
+from django.utils import timezone
 
 from apps.leads.models import Lead
 from apps.deals.models import Deal
+
 
 User = get_user_model()
 
@@ -14,6 +14,7 @@ CLOSED_STAGES = [
     "Closed Won",
     "Closed Lost",
 ]
+
 
 ACTIVE_STAGES = [
     "Contract Sent",
@@ -26,23 +27,18 @@ ACTIVE_STAGES = [
 
 def get_dashboard_summary():
 
-    # Total number of leads
     total_leads = Lead.objects.count()
 
-    # Active deals
     active_deals = Deal.objects.filter(
         deal_stage__in=ACTIVE_STAGES
     ).count()
 
-    # Closed deals
     closed_deals = Deal.objects.filter(
         deal_stage__in=CLOSED_STAGES
     ).count()
 
-    # Current date
     today = timezone.localdate()
 
-    # Current month revenue
     monthly_revenue = Deal.objects.filter(
         deal_stage="Closed Won",
         close_date__year=today.year,
@@ -62,106 +58,69 @@ def get_dashboard_summary():
 
 def get_conversion_data():
 
-    total_leads = Lead.objects.count()
+    # Contact starts from the Lead table
+    contact_count = Lead.objects.count()
 
-    if total_leads == 0:
-        return {
-            "contact": {
-                "count": 0,
-                "percentage": 0,
-            },
-            "qualified_lead": {
-                "count": 0,
-                "percentage": 0,
-            },
-            "proposal_sent": {
-                "count": 0,
-                "percentage": 0,
-            },
-            "negotiation": {
-                "count": 0,
-                "percentage": 0,
-            },
-            "closed_won": {
-                "count": 0,
-                "percentage": 0,
-            },
-            "closed_lost": {
-                "count": 0,
-                "percentage": 0,
-            },
-        }
-
-    contact_count = Lead.objects.filter(
-        lead_status__in=[
-            "New",
-            "Open",
-            "In Progress",
-            "Appointment Scheduled",
-        ]
+    # Remaining conversion stages come from the Deal table
+    qualified_lead_count = Deal.objects.filter(
+        deal_stage="Qualified to Buy"
     ).count()
 
-    qualified_lead_count = Lead.objects.filter(
-        lead_status="Qualified to Buy"
+    proposal_sent_count = Deal.objects.filter(
+        deal_stage="Contract Sent"
     ).count()
 
-    proposal_sent_count = Lead.objects.filter(
-        lead_status="Contract Sent"
+    negotiation_count = Deal.objects.filter(
+        deal_stage="Decision Maker Bought In"
     ).count()
 
-    negotiation_count = Lead.objects.filter(
-        lead_status="Decision Maker Bought In"
+    closed_won_count = Deal.objects.filter(
+        deal_stage="Closed Won"
     ).count()
 
-    closed_won_count = Lead.objects.filter(
-        lead_status="Closed Won"
-    ).count()
-
-    closed_lost_count = Lead.objects.filter(
-        lead_status="Closed Lost"
+    closed_lost_count = Deal.objects.filter(
+        deal_stage="Closed Lost"
     ).count()
 
     return {
         "contact": {
             "count": contact_count,
-            "percentage": round(
-                (contact_count / total_leads) * 100
-            ),
+            "percentage": 100 if contact_count > 0 else 0,
         },
 
         "qualified_lead": {
             "count": qualified_lead_count,
             "percentage": round(
-                (qualified_lead_count / total_leads) * 100
-            ),
+                (qualified_lead_count / contact_count) * 100
+            ) if contact_count else 0,
         },
 
         "proposal_sent": {
             "count": proposal_sent_count,
             "percentage": round(
-                (proposal_sent_count / total_leads) * 100
-            ),
+                (proposal_sent_count / contact_count) * 100
+            ) if contact_count else 0,
         },
 
         "negotiation": {
             "count": negotiation_count,
             "percentage": round(
-                (negotiation_count / total_leads) * 100
-            ),
+                (negotiation_count / contact_count) * 100
+            ) if contact_count else 0,
         },
 
         "closed_won": {
             "count": closed_won_count,
             "percentage": round(
-                (closed_won_count / total_leads) * 100
-            ),
+                (closed_won_count / contact_count) * 100
+            ) if contact_count else 0,
         },
 
         "closed_lost": {
             "count": closed_lost_count,
             "percentage": round(
-                (closed_lost_count / total_leads) * 100
-            ),
+                (closed_lost_count / contact_count) * 100
+            ) if contact_count else 0,
         },
     }
 
@@ -174,10 +133,6 @@ def get_sales_report(period="Monthly"):
         deal_stage="Closed Won"
     )
 
-    # =========================
-    # MONTHLY
-    # =========================
-
     if period == "Monthly":
 
         deals = deals.filter(
@@ -189,7 +144,9 @@ def get_sales_report(period="Monthly"):
         sales = (
             deals
             .values("period")
-            .annotate(revenue=Sum("amount"))
+            .annotate(
+                revenue=Sum("amount")
+            )
             .order_by("period")
         )
 
@@ -199,22 +156,33 @@ def get_sales_report(period="Monthly"):
         }
 
         months = [
-            "Jan", "Feb", "Mar", "Apr",
-            "May", "Jun", "Jul", "Aug",
-            "Sep", "Oct", "Nov", "Dec"
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
         ]
 
         return [
             {
                 "month": month_name,
-                "revenue": sales_by_month.get(month_number, 0),
+                "revenue": sales_by_month.get(
+                    month_number,
+                    0
+                ),
             }
-            for month_number, month_name in enumerate(months, start=1)
+            for month_number, month_name in enumerate(
+                months,
+                start=1
+            )
         ]
-    
-    # =========================
-    # QUARTERLY
-    # =========================
 
     elif period == "Quarterly":
 
@@ -227,7 +195,9 @@ def get_sales_report(period="Monthly"):
         sales = (
             deals
             .values("period")
-            .annotate(revenue=Sum("amount"))
+            .annotate(
+                revenue=Sum("amount")
+            )
             .order_by("period")
         )
 
@@ -239,14 +209,13 @@ def get_sales_report(period="Monthly"):
         return [
             {
                 "month": f"Q{quarter}",
-                "revenue": sales_by_quarter.get(quarter, 0),
+                "revenue": sales_by_quarter.get(
+                    quarter,
+                    0
+                ),
             }
             for quarter in range(1, 5)
         ]
-
-    # =========================
-    # YEARLY
-    # =========================
 
     elif period == "Yearly":
 
@@ -257,7 +226,9 @@ def get_sales_report(period="Monthly"):
         sales = (
             deals
             .values("period")
-            .annotate(revenue=Sum("amount"))
+            .annotate(
+                revenue=Sum("amount")
+            )
             .order_by("period")
         )
 
@@ -285,7 +256,7 @@ def get_team_performance():
                 filter=Q(
                     owned_deals__deal_stage__in=ACTIVE_STAGES
                 ),
-                distinct=True
+                distinct=True,
             ),
 
             closed_deals=Count(
@@ -293,7 +264,7 @@ def get_team_performance():
                 filter=Q(
                     owned_deals__deal_stage__in=CLOSED_STAGES
                 ),
-                distinct=True
+                distinct=True,
             ),
 
             revenue=Coalesce(
@@ -301,14 +272,14 @@ def get_team_performance():
                     "owned_deals__amount",
                     filter=Q(
                         owned_deals__deal_stage="Closed Won"
-                    )
+                    ),
                 ),
                 Value(0),
                 output_field=DecimalField(
                     max_digits=12,
-                    decimal_places=2
-                )
-            )
+                    decimal_places=2,
+                ),
+            ),
         )
         .order_by("-revenue")
     )

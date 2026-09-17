@@ -1,6 +1,11 @@
+from django.contrib.auth import get_user_model
+
 from rest_framework import serializers
 
 from .models import Ticket
+
+
+User = get_user_model()
 
 
 # =====================================================
@@ -9,8 +14,16 @@ from .models import Ticket
 
 class TicketSerializer(serializers.ModelSerializer):
 
+    ticket_owners = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=False,
+        allow_empty=True,
+    )
+
     class Meta:
         model = Ticket
+
         fields = (
             "id",
             "ticket_name",
@@ -18,7 +31,7 @@ class TicketSerializer(serializers.ModelSerializer):
             "ticket_status",
             "source",
             "priority",
-            "ticket_owner",
+            "ticket_owners",
             "associated_deal",
             "created_date",
             "updated_at",
@@ -30,6 +43,42 @@ class TicketSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    def create(self, validated_data):
+
+        ticket_owners = validated_data.pop(
+            "ticket_owners",
+            []
+        )
+
+        ticket = Ticket.objects.create(
+            **validated_data
+        )
+
+        ticket.ticket_owners.set(
+            ticket_owners
+        )
+
+        return ticket
+
+    def update(self, instance, validated_data):
+
+        ticket_owners = validated_data.pop(
+            "ticket_owners",
+            None
+        )
+
+        instance = super().update(
+            instance,
+            validated_data
+        )
+
+        if ticket_owners is not None:
+            instance.ticket_owners.set(
+                ticket_owners
+            )
+
+        return instance
+
 
 # =====================================================
 # TICKET LIST / DETAIL SERIALIZER
@@ -37,24 +86,40 @@ class TicketSerializer(serializers.ModelSerializer):
 
 class TicketListSerializer(serializers.ModelSerializer):
 
-    # Display deal name
+    # -------------------------------------------------
+    # DEAL NAME
+    # -------------------------------------------------
+
     deal_name = serializers.CharField(
         source="associated_deal.deal_name",
         read_only=True
     )
 
-    # Keep owner display name for table
-    ticket_owner = serializers.SerializerMethodField()
+    # -------------------------------------------------
+    # DEAL STATUS
+    # -------------------------------------------------
 
-    # IMPORTANT:
-    # Send owner ID also for Edit Drawer
-    ticket_owner_id = serializers.IntegerField(
-        source="ticket_owner.id",
+    deal_status = serializers.CharField(
+        source="associated_deal.deal_stage",
         read_only=True
     )
 
-    # IMPORTANT:
-    # Send deal ID also for Edit Drawer
+    # -------------------------------------------------
+    # TICKET OWNER NAMES
+    # -------------------------------------------------
+
+    ticket_owners = serializers.SerializerMethodField()
+
+    # -------------------------------------------------
+    # TICKET OWNER IDS
+    # -------------------------------------------------
+
+    ticket_owner_ids = serializers.SerializerMethodField()
+
+    # -------------------------------------------------
+    # ASSOCIATED DEAL ID
+    # -------------------------------------------------
+
     associated_deal_id = serializers.IntegerField(
         source="associated_deal.id",
         read_only=True
@@ -68,27 +133,45 @@ class TicketListSerializer(serializers.ModelSerializer):
             "ticket_name",
             "description",
             "deal_name",
+            "deal_status",
             "associated_deal_id",
             "ticket_status",
             "priority",
             "source",
-            "ticket_owner",
-            "ticket_owner_id",
+            "ticket_owners",
+            "ticket_owner_ids",
             "created_date",
         )
 
-    def get_ticket_owner(self, obj):
-        user = obj.ticket_owner
+    def get_ticket_owners(self, obj):
 
-        if not user:
-            return ""
+        owners = obj.ticket_owners.all()
 
-        full_name = f"{user.first_name} {user.last_name}".strip()
+        result = []
 
-        if full_name:
-            return full_name
+        for user in owners:
 
-        return user.email
+            full_name = (
+                f"{user.first_name or ''} "
+                f"{user.last_name or ''}"
+            ).strip()
+
+            if full_name:
+                result.append(full_name)
+
+            elif user.email:
+                result.append(user.email)
+
+        return result
+
+    def get_ticket_owner_ids(self, obj):
+
+        return list(
+            obj.ticket_owners.values_list(
+                "id",
+                flat=True
+            )
+        )
 
 
 # =====================================================
@@ -96,6 +179,13 @@ class TicketListSerializer(serializers.ModelSerializer):
 # =====================================================
 
 class UpdateTicketSerializer(serializers.ModelSerializer):
+
+    ticket_owners = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=False,
+        allow_empty=True,
+    )
 
     class Meta:
         model = Ticket
@@ -106,6 +196,27 @@ class UpdateTicketSerializer(serializers.ModelSerializer):
             "ticket_status",
             "source",
             "priority",
-            "ticket_owner",
+            "ticket_owners",
             "associated_deal",
         )
+
+    def update(self, instance, validated_data):
+
+        ticket_owners = validated_data.pop(
+            "ticket_owners",
+            None
+        )
+
+        instance = super().update(
+            instance,
+            validated_data
+        )
+
+        if ticket_owners is not None:
+
+            instance.ticket_owners.set(
+                ticket_owners
+            )
+
+        return instance
+

@@ -1,1116 +1,6 @@
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from rest_framework.permissions import IsAuthenticated
-
-# from .models import Call
-# from .serializers import CallSerializer
-
-
-# class CallListCreateView(APIView):
-
-#     permission_classes = [
-#         IsAuthenticated
-#     ]
-
-#     # =================================================
-#     # GET ALL CALLS
-#     # =================================================
-
-#     def get(self, request):
-
-#         calls = (
-#             Call.objects
-#             .select_related(
-#                 "activity",
-#                 "activity__created_by",
-#                 "activity__content_type",
-#                 "connected_content_type",
-#             )
-#             .order_by("-created_at")
-#         )
-
-#         serializer = CallSerializer(
-#             calls,
-#             many=True,
-#             context={
-#                 "request": request
-#             }
-#         )
-
-#         return Response(
-#             serializer.data,
-#             status=status.HTTP_200_OK
-#         )
-
-#     # =================================================
-#     # CREATE CALL
-#     # =================================================
-
-#     def post(self, request):
-
-#         serializer = CallSerializer(
-#             data=request.data,
-#             context={
-#                 "request": request
-#             }
-#         )
-
-#         if serializer.is_valid():
-
-#             call = serializer.save()
-
-#             response_serializer = CallSerializer(
-#                 call,
-#                 context={
-#                     "request": request
-#                 }
-#             )
-
-#             return Response(
-#                 response_serializer.data,
-#                 status=status.HTTP_201_CREATED
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
-
-
-# class CallDetailView(APIView):
-
-#     permission_classes = [
-#         IsAuthenticated
-#     ]
-
-#     # =================================================
-#     # GET CALL OBJECT
-#     # =================================================
-
-#     def get_object(self, pk):
-
-#         try:
-
-#             return (
-#                 Call.objects
-#                 .select_related(
-#                     "activity",
-#                     "activity__created_by",
-#                     "activity__content_type",
-#                     "connected_content_type",
-#                 )
-#                 .get(pk=pk)
-#             )
-
-#         except Call.DoesNotExist:
-
-#             return None
-
-#     # =================================================
-#     # GET SINGLE CALL
-#     # =================================================
-
-#     def get(self, request, pk):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             context={
-#                 "request": request
-#             }
-#         )
-
-#         return Response(
-#             serializer.data,
-#             status=status.HTTP_200_OK
-#         )
-
-#     # =================================================
-#     # PUT
-#     # =================================================
-
-#     def put(
-#         self,
-#         request,
-#         pk
-#     ):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#             context={
-#                 "request": request
-#             }
-#         )
-
-#         if serializer.is_valid():
-
-#             serializer.save()
-
-#             response_serializer = CallSerializer(
-#                 call,
-#                 context={
-#                     "request": request
-#                 }
-#             )
-
-#             return Response(
-#                 response_serializer.data,
-#                 status=status.HTTP_200_OK
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
-
-#     # =================================================
-#     # PATCH
-#     # =================================================
-
-#     def patch(
-#         self,
-#         request,
-#         pk
-#     ):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#             partial=True,
-#             context={
-#                 "request": request
-#             }
-#         )
-
-#         if serializer.is_valid():
-
-#             serializer.save()
-
-#             response_serializer = CallSerializer(
-#                 call,
-#                 context={
-#                     "request": request
-#                 }
-#             )
-
-#             return Response(
-#                 response_serializer.data,
-#                 status=status.HTTP_200_OK
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST
-#         )
-
-#     # =================================================
-#     # DELETE
-#     # =================================================
-
-#     def delete(
-#         self,
-#         request,
-#         pk
-#     ):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND
-#             )
-
-#         call.delete()
-
-#         return Response(
-#             {
-#                 "detail": "Call deleted successfully."
-#             },
-#             status=status.HTTP_204_NO_CONTENT
-#         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# from django.conf import settings
-# from django.contrib.contenttypes.models import ContentType
-# from django.http import HttpResponse
-
-# from rest_framework.views import APIView
-# from rest_framework.permissions import IsAuthenticated, AllowAny
-# from rest_framework.response import Response
-# from rest_framework import status
-
-# from twilio.rest import Client
-# from twilio.twiml.voice_response import VoiceResponse, Dial
-
-# from .models import Call
-# from .serializers import CallSerializer
-
-
-# MODULE_MAP = {
-#     "lead": ("leads", "lead"),
-#     "company": ("companies", "company"),
-#     "deal": ("deals", "deal"),
-#     "ticket": ("tickets", "ticket"),
-# }
-
-
-# # ============================================================
-# # GET ALL CALLS
-# # POST CREATE CALL
-# # ============================================================
-
-# class CallListCreateView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         calls = Call.objects.select_related(
-#             "activity",
-#             "activity__created_by",
-#             "connected_content_type",
-#         ).order_by("-created_at")
-
-#         serializer = CallSerializer(
-#             calls,
-#             many=True,
-#         )
-
-#         return Response(serializer.data)
-
-#     def post(self, request):
-#         serializer = CallSerializer(
-#             data=request.data
-#         )
-
-#         if serializer.is_valid():
-#             call = serializer.save()
-
-#             return Response(
-#                 CallSerializer(call).data,
-#                 status=status.HTTP_201_CREATED,
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-
-# # ============================================================
-# # START TWILIO TRIAL CALL
-# # ============================================================
-
-# class StartCallView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request):
-#         module = request.data.get("module")
-#         module_id = request.data.get("module_id")
-
-#         print("\n================================")
-#         print("START TWILIO TRIAL CALL")
-#         print("================================")
-#         print("Module:", module)
-#         print("Module ID:", module_id)
-
-#         # ----------------------------------------------------
-#         # Validate module
-#         # ----------------------------------------------------
-
-#         if module not in MODULE_MAP:
-#             return Response(
-#                 {
-#                     "detail": "Invalid module."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         if not module_id:
-#             return Response(
-#                 {
-#                     "detail": "module_id is required."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         # ----------------------------------------------------
-#         # Get module object
-#         # ----------------------------------------------------
-
-#         app_label, model_name = MODULE_MAP[module]
-
-#         try:
-#             content_type = ContentType.objects.get(
-#                 app_label=app_label,
-#                 model=model_name,
-#             )
-
-#             model_class = content_type.model_class()
-
-#             obj = model_class.objects.get(
-#                 pk=module_id
-#             )
-
-#         except ContentType.DoesNotExist:
-#             return Response(
-#                 {
-#                     "detail": "Module configuration not found."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         except model_class.DoesNotExist:
-#             return Response(
-#                 {
-#                     "detail": f"{module.title()} not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         # ----------------------------------------------------
-#         # Get customer phone
-#         # ----------------------------------------------------
-
-#         customer_phone = None
-
-#         for field in [
-#             "phone_number",
-#             "phone",
-#             "mobile_number",
-#             "mobile",
-#         ]:
-#             value = getattr(obj, field, None)
-
-#             if value:
-#                 customer_phone = str(value)
-#                 break
-
-#         print("Customer phone:", customer_phone)
-
-#         if not customer_phone:
-#             return Response(
-#                 {
-#                     "detail": "Customer phone number not found."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         # ----------------------------------------------------
-#         # Twilio settings
-#         # ----------------------------------------------------
-
-#         account_sid = settings.TWILIO_ACCOUNT_SID
-#         auth_token = settings.TWILIO_AUTH_TOKEN
-#         twilio_phone = settings.TWILIO_PHONE_NUMBER
-
-#         if not account_sid:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_ACCOUNT_SID is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         if not auth_token:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_AUTH_TOKEN is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         if not twilio_phone:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_PHONE_NUMBER is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         # ----------------------------------------------------
-#         # TRIAL TEST
-#         #
-#         # Do NOT use your ngrok webhook here.
-#         # ----------------------------------------------------
-
-#         trial_webhook_url = (
-#             "https://webhooks.twilio.com/v1/Voice/Template/"
-#             "voice_text_to_speech"
-#         )
-
-#         try:
-#             client = Client(
-#                 account_sid,
-#                 auth_token,
-#             )
-
-#             call = client.calls.create(
-#                 to=customer_phone,
-#                 from_=twilio_phone,
-#                 url=trial_webhook_url,
-#             )
-
-#             print("\n================================")
-#             print("TWILIO TRIAL CALL CREATED")
-#             print("================================")
-#             print("Call SID:", call.sid)
-#             print("Status:", call.status)
-#             print("To:", customer_phone)
-#             print("From:", twilio_phone)
-#             print("================================\n")
-
-#             return Response(
-#                 {
-#                     "success": True,
-#                     "message": "Twilio trial call started.",
-#                     "call_sid": call.sid,
-#                     "status": call.status,
-#                     "to": customer_phone,
-#                     "from": twilio_phone,
-#                 },
-#                 status=status.HTTP_200_OK,
-#             )
-
-#         except Exception as e:
-#             print("\n================================================")
-#             print("TWILIO TRIAL CALL ERROR")
-#             print("================================================")
-#             print(str(e))
-#             print("================================================\n")
-
-#             return Response(
-#                 {
-#                     "success": False,
-#                     "detail": "Twilio trial call could not be started.",
-#                     "error": str(e),
-#                 },
-#                 status=status.HTTP_502_BAD_GATEWAY,
-#             )
-
-
-# # ============================================================
-# # TWILIO VOICE WEBHOOK
-# #
-# # This is kept because your existing URL still uses it.
-# # It will be used later for the CRM-user -> customer bridge.
-# # ============================================================
-
-# class TwilioVoiceWebhookView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         response = VoiceResponse()
-
-#         response.say(
-#             "Connecting you to the customer."
-#         )
-
-#         # This endpoint is currently kept for the future
-#         # custom Twilio bridge implementation.
-
-#         return HttpResponse(
-#             str(response),
-#             content_type="text/xml",
-#         )
-
-#     def get(self, request):
-#         return self.post(request)
-
-
-# # ============================================================
-# # GET / UPDATE / DELETE SINGLE CALL
-# # ============================================================
-
-# class CallDetailView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get_object(self, pk):
-#         try:
-#             return Call.objects.select_related(
-#                 "activity",
-#                 "activity__created_by",
-#                 "connected_content_type",
-#             ).get(pk=pk)
-
-#         except Call.DoesNotExist:
-#             return None
-
-#     def get(self, request, pk):
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(call)
-
-#         return Response(serializer.data)
-
-#     def put(self, request, pk):
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#         )
-
-#         if serializer.is_valid():
-#             serializer.save()
-
-#             return Response(
-#                 serializer.data
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     def patch(self, request, pk):
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#             partial=True,
-#         )
-
-#         if serializer.is_valid():
-#             serializer.save()
-
-#             return Response(
-#                 serializer.data
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     def delete(self, request, pk):
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {
-#                     "detail": "Call not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         call.delete()
-
-#         return Response(
-#             {
-#                 "message": "Call deleted successfully."
-#             },
-#             status=status.HTTP_204_NO_CONTENT,
-#         )
-
-
-
-
-
-# from django.conf import settings
-# from django.contrib.contenttypes.models import ContentType
-# from django.http import HttpResponse
-
-# from rest_framework.views import APIView
-# from rest_framework.permissions import IsAuthenticated, AllowAny
-# from rest_framework.response import Response
-# from rest_framework import status
-
-# from twilio.rest import Client
-# from twilio.twiml.voice_response import VoiceResponse, Dial
-
-# from .models import Call
-# from .serializers import CallSerializer
-
-
-# MODULE_MAP = {
-#     "lead": ("leads", "lead"),
-#     "company": ("companies", "company"),
-#     "deal": ("deals", "deal"),
-#     "ticket": ("tickets", "ticket"),
-# }
-
-
-# class CallListCreateView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         calls = Call.objects.select_related(
-#             "activity",
-#             "activity__created_by",
-#             "connected_content_type",
-#         ).order_by("-created_at")
-
-#         serializer = CallSerializer(calls, many=True)
-#         return Response(serializer.data)
-
-#     def post(self, request):
-#         serializer = CallSerializer(data=request.data)
-
-#         if serializer.is_valid():
-#             call = serializer.save()
-
-#             return Response(
-#                 CallSerializer(call).data,
-#                 status=status.HTTP_201_CREATED,
-#             )
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-
-# class StartCallView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request):
-#         module = request.data.get("module")
-#         module_id = request.data.get("module_id")
-
-#         print("\n================================")
-#         print("START SERVER SIDE TWILIO CALL")
-#         print("================================")
-#         print("Module:", module)
-#         print("Module ID:", module_id)
-
-#         # -----------------------------------------
-#         # VALIDATE MODULE
-#         # -----------------------------------------
-#         if module not in MODULE_MAP:
-#             return Response(
-#                 {"detail": "Invalid module."},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         if not module_id:
-#             return Response(
-#                 {"detail": "module_id is required."},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         # -----------------------------------------
-#         # GET CUSTOMER / LEAD OBJECT
-#         # -----------------------------------------
-#         app_label, model_name = MODULE_MAP[module]
-
-#         try:
-#             content_type = ContentType.objects.get(
-#                 app_label=app_label,
-#                 model=model_name,
-#             )
-
-#             model_class = content_type.model_class()
-
-#             obj = model_class.objects.get(pk=module_id)
-
-#         except ContentType.DoesNotExist:
-#             return Response(
-#                 {"detail": "Module configuration not found."},
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         except model_class.DoesNotExist:
-#             return Response(
-#                 {
-#                     "detail": f"{module.title()} not found."
-#                 },
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         # -----------------------------------------
-#         # GET CUSTOMER PHONE
-#         # -----------------------------------------
-#         customer_phone = None
-
-#         for field in [
-#             "phone_number",
-#             "phone",
-#             "mobile_number",
-#             "mobile",
-#         ]:
-#             value = getattr(obj, field, None)
-
-#             if value:
-#                 customer_phone = str(value)
-#                 break
-
-#         print("Customer phone:", customer_phone)
-
-#         if not customer_phone:
-#             return Response(
-#                 {
-#                     "detail": "Customer phone number not found."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         # -----------------------------------------
-#         # GET LOGGED-IN CRM USER PHONE
-#         # -----------------------------------------
-#         user_phone = getattr(
-#             request.user,
-#             "phone_number",
-#             None,
-#         )
-
-#         print("CRM user:", request.user)
-#         print("CRM user phone:", user_phone)
-
-#         if not user_phone:
-#             return Response(
-#                 {
-#                     "detail": "CRM user's phone number not found."
-#                 },
-#                 status=status.HTTP_400_BAD_REQUEST,
-#             )
-
-#         # -----------------------------------------
-#         # TWILIO SETTINGS
-#         # -----------------------------------------
-#         account_sid = settings.TWILIO_ACCOUNT_SID
-#         auth_token = settings.TWILIO_AUTH_TOKEN
-#         twilio_phone = settings.TWILIO_PHONE_NUMBER
-#         webhook_base_url = (
-#             settings.TWILIO_VOICE_WEBHOOK_BASE_URL
-#         )
-
-#         if not account_sid:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_ACCOUNT_SID is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         if not auth_token:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_AUTH_TOKEN is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         if not twilio_phone:
-#             return Response(
-#                 {
-#                     "detail": "TWILIO_PHONE_NUMBER is not configured."
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         if not webhook_base_url:
-#             return Response(
-#                 {
-#                     "detail": (
-#                         "TWILIO_VOICE_WEBHOOK_BASE_URL "
-#                         "is not configured."
-#                     )
-#                 },
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             )
-
-#         # -----------------------------------------
-#         # WEBHOOK URL
-#         # -----------------------------------------
-#         webhook_url = (
-#             f"{webhook_base_url}"
-#             f"/api/activities/call/twilio/voice/"
-#             f"?customer_phone={customer_phone}"
-#         )
-
-#         print("Webhook URL:", webhook_url)
-
-#         # -----------------------------------------
-#         # CREATE TWILIO CALL
-#         #
-#         # IMPORTANT:
-#         # First call CRM USER
-#         # -----------------------------------------
-#         try:
-#             client = Client(
-#                 account_sid,
-#                 auth_token,
-#             )
-
-#             call = client.calls.create(
-#                 to=user_phone,
-#                 from_=twilio_phone,
-#                 url=webhook_url,
-#                 method="POST",
-#             )
-
-#             print("\n================================")
-#             print("TWILIO CALL CREATED")
-#             print("================================")
-#             print("Call SID:", call.sid)
-#             print("Status:", call.status)
-#             print("CRM User:", user_phone)
-#             print("Customer:", customer_phone)
-#             print("================================\n")
-
-#             return Response(
-#                 {
-#                     "success": True,
-#                     "message": (
-#                         "Call started. "
-#                         "CRM user will receive the call first."
-#                     ),
-#                     "call_sid": call.sid,
-#                     "status": call.status,
-#                     "user_phone": user_phone,
-#                     "customer_phone": customer_phone,
-#                 },
-#                 status=status.HTTP_200_OK,
-#             )
-
-#         except Exception as e:
-
-#             print("\n================================================")
-#             print("TWILIO CALL ERROR")
-#             print("================================================")
-#             print(str(e))
-#             print("================================================\n")
-
-#             return Response(
-#                 {
-#                     "success": False,
-#                     "detail": (
-#                         "Twilio call could not be started."
-#                     ),
-#                     "error": str(e),
-#                 },
-#                 status=status.HTTP_502_BAD_GATEWAY,
-#             )
-
-
-# class TwilioVoiceWebhookView(APIView):
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-
-#         customer_phone = request.query_params.get(
-#             "customer_phone"
-#         )
-
-#         print("\n================================")
-#         print("TWILIO WEBHOOK HIT")
-#         print("================================")
-#         print("Customer phone:", customer_phone)
-
-#         response = VoiceResponse()
-
-#         if not customer_phone:
-#             response.say(
-#                 "Customer phone number is missing."
-#             )
-
-#             return HttpResponse(
-#                 str(response),
-#                 content_type="text/xml",
-#             )
-
-#         # -----------------------------------------
-#         # CONNECT CRM USER TO CUSTOMER
-#         # -----------------------------------------
-#         response.say(
-#             "Connecting you to the customer."
-#         )
-
-#         dial = Dial(
-#             timeout=30,
-#             caller_id=settings.TWILIO_PHONE_NUMBER,
-#         )
-
-#         dial.number(customer_phone)
-
-#         response.append(dial)
-
-#         print("Dialing customer:", customer_phone)
-#         print("================================\n")
-
-#         return HttpResponse(
-#             str(response),
-#             content_type="text/xml",
-#         )
-
-#     def get(self, request):
-#         return self.post(request)
-
-
-# class CallDetailView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get_object(self, pk):
-
-#         try:
-#             return Call.objects.select_related(
-#                 "activity",
-#                 "activity__created_by",
-#                 "connected_content_type",
-#             ).get(pk=pk)
-
-#         except Call.DoesNotExist:
-#             return None
-
-#     def get(self, request, pk):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {"detail": "Call not found."},
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(call)
-
-#         return Response(serializer.data)
-
-#     def put(self, request, pk):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {"detail": "Call not found."},
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#         )
-
-#         if serializer.is_valid():
-#             serializer.save()
-
-#             return Response(serializer.data)
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     def patch(self, request, pk):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {"detail": "Call not found."},
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         serializer = CallSerializer(
-#             call,
-#             data=request.data,
-#             partial=True,
-#         )
-
-#         if serializer.is_valid():
-#             serializer.save()
-
-#             return Response(serializer.data)
-
-#         return Response(
-#             serializer.errors,
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     def delete(self, request, pk):
-
-#         call = self.get_object(pk)
-
-#         if not call:
-#             return Response(
-#                 {"detail": "Call not found."},
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-
-#         call.delete()
-
-#         return Response(
-#             {"message": "Call deleted successfully."},
-#             status=status.HTTP_204_NO_CONTENT,
-#         )
-
-
 import logging
+
+from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -1159,23 +49,43 @@ TERMINAL_STATUSES = {
 
 
 # ============================================================
+# TIMEZONE
+# ============================================================
+
+UAE_TIMEZONE = ZoneInfo("Asia/Dubai")
+
+
+# ============================================================
+# TWILIO TRIAL VOICE TEMPLATE
+# ============================================================
+
+TRIAL_VOICE_TEMPLATE = (
+    "https://webhooks.twilio.com/"
+    "v1/Voice/Template/"
+    "voice_text_to_speech"
+)
+
+
+# ============================================================
 # CALL OUTCOME HELPER
 # ============================================================
 
 def get_call_outcome(call_status):
     """
-    Convert Twilio CallStatus / DialCallStatus
-    into CRM call outcome.
+    Convert Twilio CallStatus into CRM call outcome.
     """
 
     if not call_status:
         return "other"
 
-    status_value = str(call_status).lower().strip()
+    status_value = str(
+        call_status
+    ).lower().strip()
 
     mapping = {
         "completed": "connected",
         "answered": "connected",
+        "in-progress": "connected",
         "busy": "busy",
         "no-answer": "no_answer",
         "failed": "other",
@@ -1187,166 +97,205 @@ def get_call_outcome(call_status):
 
     return mapping.get(
         status_value,
-        "other"
+        "other",
     )
 
 
 # ============================================================
-# PHONE FORMAT HELPER
+# PHONE NORMALIZATION
 # ============================================================
 
 def normalize_phone(phone):
-    """
-    Keep phone numbers in E.164 format.
-
-    Example:
-        +971508627767
-
-    Twilio should receive the number with '+'.
-    """
 
     if not phone:
         return None
 
-    phone = str(phone).strip()
+    phone = str(
+        phone
+    ).strip()
 
-    # Remove accidental spaces
-    phone = phone.replace(" ", "")
+    phone = (
+        phone
+        .replace(" ", "")
+        .replace("-", "")
+        .replace("(", "")
+        .replace(")", "")
+    )
 
     return phone
 
 
 # ============================================================
-# CUSTOMER PHONE HELPER
+# E.164 VALIDATION
 # ============================================================
 
-def get_customer_phone(obj):
-    """
-    Find customer phone number from:
+def is_valid_e164(phone):
 
-    Lead
-    Company
-    Deal
-    Ticket
+    if not phone:
+        return False
 
-    Deal:
-        Deal -> Associated Lead
+    phone = str(
+        phone
+    ).strip()
 
-    Ticket:
-        Ticket -> Deal -> Associated Lead
-    """
+    if not phone.startswith("+"):
+        return False
 
-    # --------------------------------------------------------
-    # DIRECT PHONE FIELDS
-    # --------------------------------------------------------
+    digits = phone[1:]
 
-    for field_name in [
+    if not digits.isdigit():
+        return False
+
+    if len(digits) < 8 or len(digits) > 15:
+        return False
+
+    return True
+
+
+# ============================================================
+# GET PHONE FROM OBJECT
+# ============================================================
+
+def get_phone_from_object(obj):
+
+    if not obj:
+        return None
+
+    phone_fields = [
         "phone_number",
         "phone",
         "mobile_number",
         "mobile",
-    ]:
+        "contact_phone",
+        "customer_phone",
+    ]
+
+    for field_name in phone_fields:
 
         phone = getattr(
             obj,
             field_name,
-            None
+            None,
         )
 
         if phone:
 
-            return normalize_phone(phone)
+            normalized = normalize_phone(
+                phone
+            )
+
+            if normalized:
+                return normalized
+
+    return None
+
+
+# ============================================================
+# GET CUSTOMER PHONE
+# ============================================================
+
+def get_customer_phone(obj):
+    """
+    Priority:
+
+    Lead:
+        Lead phone
+
+    Company:
+        Company phone
+
+    Deal:
+        Deal phone
+        -> Associated Lead phone
+
+    Ticket:
+        Ticket phone
+        -> Associated Deal phone
+        -> Associated Lead phone
+    """
+
+    if not obj:
+        return None
 
     # --------------------------------------------------------
-    # DEAL -> ASSOCIATED LEAD
+    # 1. DIRECT OBJECT PHONE
+    # --------------------------------------------------------
+
+    direct_phone = get_phone_from_object(
+        obj
+    )
+
+    if direct_phone:
+        return direct_phone
+
+    # --------------------------------------------------------
+    # 2. DIRECT ASSOCIATED LEAD
     # --------------------------------------------------------
 
     associated_lead = getattr(
         obj,
         "associated_lead",
-        None
+        None,
     )
 
     if associated_lead:
 
-        for field_name in [
-            "phone_number",
-            "phone",
-            "mobile_number",
-            "mobile",
-        ]:
+        lead_phone = get_phone_from_object(
+            associated_lead
+        )
 
-            phone = getattr(
-                associated_lead,
-                field_name,
-                None
-            )
-
-            if phone:
-
-                return normalize_phone(phone)
+        if lead_phone:
+            return lead_phone
 
     # --------------------------------------------------------
-    # TICKET -> DEAL
+    # 3. OBJECT -> DEAL
     # --------------------------------------------------------
 
     deal = getattr(
         obj,
         "deal",
-        None
+        None,
     )
+
+    if not deal:
+
+        deal = getattr(
+            obj,
+            "associated_deal",
+            None,
+        )
 
     if deal:
 
         # ----------------------------------------------------
-        # TICKET -> DEAL DIRECT PHONE
+        # DEAL DIRECT PHONE
         # ----------------------------------------------------
 
-        for field_name in [
-            "phone_number",
-            "phone",
-            "mobile_number",
-            "mobile",
-        ]:
-
-            phone = getattr(
-                deal,
-                field_name,
-                None
-            )
-
-            if phone:
-
-                return normalize_phone(phone)
-
-        # ----------------------------------------------------
-        # TICKET -> DEAL -> ASSOCIATED LEAD
-        # ----------------------------------------------------
-
-        associated_lead = getattr(
-            deal,
-            "associated_lead",
-            None
+        deal_phone = get_phone_from_object(
+            deal
         )
 
-        if associated_lead:
+        if deal_phone:
+            return deal_phone
 
-            for field_name in [
-                "phone_number",
-                "phone",
-                "mobile_number",
-                "mobile",
-            ]:
+        # ----------------------------------------------------
+        # DEAL -> LEAD
+        # ----------------------------------------------------
 
-                phone = getattr(
-                    associated_lead,
-                    field_name,
-                    None
-                )
+        deal_lead = getattr(
+            deal,
+            "associated_lead",
+            None,
+        )
 
-                if phone:
+        if deal_lead:
 
-                    return normalize_phone(phone)
+            lead_phone = get_phone_from_object(
+                deal_lead
+            )
+
+            if lead_phone:
+                return lead_phone
 
     return None
 
@@ -1364,22 +313,125 @@ def get_twilio_client():
 
 
 # ============================================================
+# WEBHOOK BASE URL
+# ============================================================
+
+def get_webhook_base_url():
+
+    webhook_base_url = getattr(
+        settings,
+        "TWILIO_WEBHOOK_BASE_URL",
+        None,
+    )
+
+    if not webhook_base_url:
+        return None
+
+    return str(
+        webhook_base_url
+    ).rstrip("/")
+
+
+# ============================================================
+# CREATE CRM CALL RECORD
+#
+# IMPORTANT:
+#
+# Django stores DateTimeField values in UTC when USE_TZ=True.
+#
+# We explicitly convert created_at to Asia/Dubai before
+# saving Call.date and Call.time.
+#
+# Example:
+#
+# UTC:
+#     2026-09-15 21:21
+#
+# Dubai:
+#     2026-09-16 01:21
+#
+# Therefore Call.date/time will correctly show UAE time.
+# ============================================================
+
+def create_call_record(
+    user,
+    content_type,
+    object_id,
+    call_mode,
+):
+
+    activity = Activity.objects.create(
+        created_by=user,
+        activity_type="call",
+        content_type=content_type,
+        object_id=object_id,
+    )
+
+    # --------------------------------------------------------
+    # CONVERT UTC -> UAE TIME
+    # --------------------------------------------------------
+
+    uae_now = activity.created_at.astimezone(
+        UAE_TIMEZONE
+    )
+
+    # --------------------------------------------------------
+    # CREATE CRM CALL
+    # --------------------------------------------------------
+
+    crm_call = Call.objects.create(
+        activity=activity,
+        connected_content_type=content_type,
+        connected_object_id=object_id,
+
+        # IMPORTANT:
+        # Save UAE date/time, not UTC date/time.
+        date=uae_now.date(),
+        time=uae_now.time(),
+
+        call_mode=call_mode,
+        call_outcome="other",
+    )
+
+    logger.info(
+        "CRM Call created | "
+        "call_id=%s | "
+        "UTC=%s | "
+        "UAE=%s",
+        crm_call.id,
+        activity.created_at,
+        uae_now,
+    )
+
+    return activity, crm_call
+
+
+# ============================================================
 # CALL LIST + CREATE
 # ============================================================
 
-class CallListCreateView(generics.ListCreateAPIView):
+class CallListCreateView(
+    generics.ListCreateAPIView
+):
 
     serializer_class = CallSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def get_queryset(self):
 
-        return Call.objects.select_related(
-            "activity",
-            "activity__created_by",
-            "connected_content_type",
-        ).order_by(
-            "-created_at"
+        return (
+            Call.objects
+            .select_related(
+                "activity",
+                "activity__created_by",
+                "connected_content_type",
+            )
+            .order_by(
+                "-created_at"
+            )
         )
 
     def perform_create(self, serializer):
@@ -1398,48 +450,48 @@ class CallDetailView(
 ):
 
     serializer_class = CallSerializer
-    permission_classes = [IsAuthenticated]
 
-    queryset = Call.objects.select_related(
-        "activity",
-        "activity__created_by",
-        "connected_content_type",
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    queryset = (
+        Call.objects
+        .select_related(
+            "activity",
+            "activity__created_by",
+            "connected_content_type",
+        )
     )
 
 
 # ============================================================
-# START CALL
+# START DIRECT CALL
 #
 # FLOW:
 #
-# Frontend
-#     ↓
-# POST /activities/call/start/
-#     ↓
-# StartCallView
-#     ↓
-# Twilio calls CRM USER
-#     ↓
-# CRM USER answers
-#     ↓
-# ConnectCustomerView
-#     ↓
-# Twilio calls CUSTOMER
-#     ↓
-# CRM USER ↔ CUSTOMER
-#
+# CRM
+#  ↓
+# Twilio
+#  ↓
+# CUSTOMER
 # ============================================================
 
-class StartCallView(APIView):
+class StartDirectCallView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def post(self, request):
+
+        activity = None
+        crm_call = None
 
         try:
 
             # ==================================================
-            # 1. GET REQUEST DATA
+            # REQUEST DATA
             # ==================================================
 
             module = request.data.get(
@@ -1479,7 +531,7 @@ class StartCallView(APIView):
             ).lower().strip()
 
             # ==================================================
-            # 2. VALIDATE MODULE
+            # MODULE
             # ==================================================
 
             if module not in MODULE_MAP:
@@ -1497,12 +549,12 @@ class StartCallView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            app_label, model_name = (
-                MODULE_MAP[module]
-            )
+            app_label, model_name = MODULE_MAP[
+                module
+            ]
 
             # ==================================================
-            # 3. GET CONTENT TYPE
+            # CONTENT TYPE
             # ==================================================
 
             try:
@@ -1528,7 +580,7 @@ class StartCallView(APIView):
                 )
 
             # ==================================================
-            # 4. GET CRM MODEL
+            # MODEL
             # ==================================================
 
             crm_model = (
@@ -1541,15 +593,14 @@ class StartCallView(APIView):
                     {
                         "success": False,
                         "message": (
-                            f"Unable to load model "
-                            f"for {module}."
+                            "Unable to load CRM model."
                         ),
                     },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
             # ==================================================
-            # 5. GET CRM OBJECT
+            # OBJECT
             # ==================================================
 
             try:
@@ -1575,7 +626,388 @@ class StartCallView(APIView):
                 )
 
             # ==================================================
-            # 6. GET CRM USER PHONE
+            # CUSTOMER PHONE
+            # ==================================================
+
+            customer_phone = get_customer_phone(
+                crm_object
+            )
+
+            if not customer_phone:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Customer phone number "
+                            "not found."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            customer_phone = normalize_phone(
+                customer_phone
+            )
+
+            if not is_valid_e164(
+                customer_phone
+            ):
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Customer phone number "
+                            "must be in E.164 format."
+                        ),
+                        "customer_phone": customer_phone,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # ==================================================
+            # SETTINGS
+            # ==================================================
+
+            required_settings = [
+                "TWILIO_ACCOUNT_SID",
+                "TWILIO_AUTH_TOKEN",
+                "TWILIO_PHONE_NUMBER",
+            ]
+
+            missing_settings = [
+                setting_name
+                for setting_name in required_settings
+                if not getattr(
+                    settings,
+                    setting_name,
+                    None,
+                )
+            ]
+
+            if missing_settings:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Missing Twilio settings: "
+                            + ", ".join(
+                                missing_settings
+                            )
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            twilio_phone = normalize_phone(
+                settings.TWILIO_PHONE_NUMBER
+            )
+
+            if not is_valid_e164(
+                twilio_phone
+            ):
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "TWILIO_PHONE_NUMBER "
+                            "must be in E.164 format."
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # ==================================================
+            # CRM RECORD
+            # ==================================================
+
+            with transaction.atomic():
+
+                activity, crm_call = (
+                    create_call_record(
+                        user=request.user,
+                        content_type=content_type,
+                        object_id=crm_object.pk,
+                        call_mode="direct",
+                    )
+                )
+
+            # ==================================================
+            # TWILIO
+            # ==================================================
+
+            logger.info(
+                "Starting Direct Call | "
+                "module=%s | "
+                "module_id=%s | "
+                "customer=%s",
+                module,
+                crm_object.pk,
+                customer_phone,
+            )
+
+            try:
+
+                client = get_twilio_client()
+
+                twilio_call = client.calls.create(
+                    to=customer_phone,
+                    from_=twilio_phone,
+                    url=TRIAL_VOICE_TEMPLATE,
+                )
+
+            except Exception as twilio_error:
+
+                logger.exception(
+                    "Twilio Direct Call error"
+                )
+
+                if crm_call:
+                    crm_call.delete()
+
+                if activity:
+                    activity.delete()
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Unable to start "
+                            "Twilio direct call."
+                        ),
+                        "error": str(
+                            twilio_error
+                        ),
+                        "customer_phone": customer_phone,
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            # ==================================================
+            # SAVE SID
+            # ==================================================
+
+            crm_call.customer_twilio_call_sid = (
+                twilio_call.sid
+            )
+
+            crm_call.twilio_call_sid = (
+                twilio_call.sid
+            )
+
+            crm_call.twilio_status = (
+                getattr(
+                    twilio_call,
+                    "status",
+                    None,
+                )
+                or "queued"
+            )
+
+            crm_call.save(
+                update_fields=[
+                    "customer_twilio_call_sid",
+                    "twilio_call_sid",
+                    "twilio_status",
+                    "updated_at",
+                ]
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": (
+                        "Direct call to CRM record started"
+                    ),
+                    "call_id": crm_call.id,
+                    "module": module,
+                    "module_id": crm_object.pk,
+                    "customer_phone": customer_phone,
+                    "twilio_call_sid": twilio_call.sid,
+                    "twilio_status": (
+                        twilio_call.status
+                    ),
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as exc:
+
+            logger.exception(
+                "Unexpected error in "
+                "StartDirectCallView"
+            )
+
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "Failed to start "
+                        "direct call."
+                    ),
+                    "error": str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+# ============================================================
+# START BRIDGE CALL
+# ============================================================
+
+class StartCallView(APIView):
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def post(self, request):
+
+        activity = None
+        crm_call = None
+
+        try:
+
+            # ==================================================
+            # REQUEST
+            # ==================================================
+
+            module = request.data.get(
+                "module"
+            )
+
+            module_id = request.data.get(
+                "module_id"
+            )
+
+            if not module:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Module is required."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not module_id:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Module ID is required."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            module = str(
+                module
+            ).lower().strip()
+
+            # ==================================================
+            # MODULE
+            # ==================================================
+
+            if module not in MODULE_MAP:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            f"Unsupported module "
+                            f"'{module}'. "
+                            f"Allowed modules: "
+                            f"{', '.join(MODULE_MAP.keys())}"
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            app_label, model_name = MODULE_MAP[
+                module
+            ]
+
+            # ==================================================
+            # CONTENT TYPE
+            # ==================================================
+
+            try:
+
+                content_type = (
+                    ContentType.objects.get(
+                        app_label=app_label,
+                        model=model_name,
+                    )
+                )
+
+            except ContentType.DoesNotExist:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            f"Content type not found "
+                            f"for {module}."
+                        ),
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # ==================================================
+            # MODEL
+            # ==================================================
+
+            crm_model = (
+                content_type.model_class()
+            )
+
+            if not crm_model:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Unable to load CRM model."
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            # ==================================================
+            # CRM OBJECT
+            # ==================================================
+
+            try:
+
+                crm_object = (
+                    crm_model.objects.get(
+                        pk=module_id
+                    )
+                )
+
+            except crm_model.DoesNotExist:
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            f"{module.capitalize()} "
+                            f"with ID {module_id} "
+                            f"not found."
+                        ),
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # ==================================================
+            # CRM USER PHONE
             # ==================================================
 
             crm_user = request.user
@@ -1583,7 +1015,7 @@ class StartCallView(APIView):
             user_phone = getattr(
                 crm_user,
                 "phone_number",
-                None
+                None,
             )
 
             if not user_phone:
@@ -1604,7 +1036,7 @@ class StartCallView(APIView):
             )
 
             # ==================================================
-            # 7. GET CUSTOMER PHONE
+            # CUSTOMER PHONE
             # ==================================================
 
             customer_phone = get_customer_phone(
@@ -1624,40 +1056,48 @@ class StartCallView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            customer_phone = normalize_phone(
+                customer_phone
+            )
+
             # ==================================================
-            # 8. VALIDATE PHONE FORMAT
+            # VALIDATE PHONES
             # ==================================================
 
-            if not user_phone.startswith("+"):
+            if not is_valid_e164(
+                user_phone
+            ):
 
                 return Response(
                     {
                         "success": False,
                         "message": (
                             "CRM user phone number "
-                            "must be in E.164 format. "
-                            "Example: +971501234567"
+                            "must be in E.164 format."
                         ),
+                        "user_phone": user_phone,
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if not customer_phone.startswith("+"):
+            if not is_valid_e164(
+                customer_phone
+            ):
 
                 return Response(
                     {
                         "success": False,
                         "message": (
                             "Customer phone number "
-                            "must be in E.164 format. "
-                            "Example: +971508627767"
+                            "must be in E.164 format."
                         ),
+                        "customer_phone": customer_phone,
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # ==================================================
-            # 9. TWILIO SETTINGS
+            # SETTINGS
             # ==================================================
 
             required_settings = [
@@ -1673,7 +1113,7 @@ class StartCallView(APIView):
                 if not getattr(
                     settings,
                     setting_name,
-                    None
+                    None,
                 )
             ]
 
@@ -1692,165 +1132,116 @@ class StartCallView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-            twilio_phone = (
+            twilio_phone = normalize_phone(
                 settings.TWILIO_PHONE_NUMBER
             )
 
-            webhook_base_url = (
-                settings.TWILIO_WEBHOOK_BASE_URL
-                .rstrip("/")
-            )
-
-            # ==================================================
-            # 10. WEBHOOK URLS
-            # ==================================================
-
-            connect_customer_url = (
-                f"{webhook_base_url}"
-                f"/api/activities/call/"
-                f"connect-customer/"
-            )
-
-            # ==================================================
-            # 11. CREATE CRM ACTIVITY + CALL
-            # ==================================================
-
-            with transaction.atomic():
-
-                activity = Activity.objects.create(
-                    created_by=crm_user,
-                    activity_type="call",
-                    content_type=content_type,
-                    object_id=crm_object.pk,
-                )
-
-                crm_call = Call.objects.create(
-                    activity=activity,
-                    connected_content_type=content_type,
-                    connected_object_id=crm_object.pk,
-                    date=activity.created_at.date(),
-                    time=activity.created_at.time(),
-                    call_outcome="other",
-                )
-
-            # ==================================================
-            # 12. USER CALL URL
-            #
-            # Twilio calls USER.
-            #
-            # When USER answers,
-            # Twilio requests ConnectCustomerView.
-            # ==================================================
-
-            user_call_url = (
-                f"{connect_customer_url}"
-                f"?call_id={crm_call.id}"
-            )
-
-            # ==================================================
-            # 13. USER STATUS CALLBACK
-            # ==================================================
-
-            user_status_url = (
-                f"{webhook_base_url}"
-                f"/api/activities/call/"
-                f"dial-status/"
-                f"?call_id={crm_call.id}"
-                f"&leg=user"
-            )
-
-            # ==================================================
-            # 14. CREATE FIRST TWILIO LEG
-            #
-            # USER IS CALLED FIRST
-            # ==================================================
-
-            client = get_twilio_client()
-
-            try:
-
-                twilio_call = client.calls.create(
-
-                    # ------------------------------
-                    # CRM USER PHONE
-                    # ------------------------------
-
-                    to=user_phone,
-
-                    # ------------------------------
-                    # TWILIO NUMBER
-                    # ------------------------------
-
-                    from_=twilio_phone,
-
-                    # ------------------------------
-                    # AFTER USER ANSWERS
-                    # ------------------------------
-
-                    url=user_call_url,
-                    method="POST",
-
-                    # ------------------------------
-                    # USER LEG STATUS
-                    # ------------------------------
-
-                    status_callback=user_status_url,
-                    status_callback_method="POST",
-                    status_callback_event=[
-                        "initiated",
-                        "ringing",
-                        "answered",
-                        "completed",
-                    ],
-                )
-
-            except Exception as twilio_error:
-
-                logger.exception(
-                    "Twilio StartCall error"
-                )
-
-                # ----------------------------------
-                # REMOVE CRM CALL
-                # ----------------------------------
-
-                try:
-                    crm_call.delete()
-                except Exception:
-                    pass
-
-                # ----------------------------------
-                # REMOVE ACTIVITY
-                # ----------------------------------
-
-                try:
-                    activity.delete()
-                except Exception:
-                    pass
+            if not is_valid_e164(
+                twilio_phone
+            ):
 
                 return Response(
                     {
                         "success": False,
                         "message": (
-                            "Unable to start "
-                            "Twilio call."
+                            "TWILIO_PHONE_NUMBER "
+                            "must be in E.164 format."
+                        ),
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            webhook_base_url = (
+                get_webhook_base_url()
+            )
+
+            # ==================================================
+            # CREATE CRM CALL
+            # ==================================================
+
+            with transaction.atomic():
+
+                activity, crm_call = (
+                    create_call_record(
+                        user=crm_user,
+                        content_type=content_type,
+                        object_id=crm_object.pk,
+                        call_mode="bridge",
+                    )
+                )
+
+            # ==================================================
+            # USER STATUS CALLBACK
+            # ==================================================
+
+            user_status_url = (
+                f"{webhook_base_url}"
+                f"/api/activities/call/"
+                f"bridge-user-status/"
+                f"?call_id={crm_call.id}"
+            )
+
+            logger.info(
+                "Starting Trial Bridge | "
+                "call_id=%s | "
+                "user=%s | "
+                "customer=%s",
+                crm_call.id,
+                user_phone,
+                customer_phone,
+            )
+
+            # ==================================================
+            # CREATE FIRST CALL
+            # ==================================================
+
+            try:
+
+                client = get_twilio_client()
+
+                twilio_call = client.calls.create(
+                    to=user_phone,
+                    from_=twilio_phone,
+                    url=TRIAL_VOICE_TEMPLATE,
+                    status_callback=user_status_url,
+                )
+
+            except Exception as twilio_error:
+
+                logger.exception(
+                    "Twilio Trial Bridge user-call error"
+                )
+
+                if crm_call:
+                    crm_call.delete()
+
+                if activity:
+                    activity.delete()
+
+                return Response(
+                    {
+                        "success": False,
+                        "message": (
+                            "Unable to call "
+                            "CRM user."
                         ),
                         "error": str(
                             twilio_error
                         ),
+                        "user_phone": user_phone,
+                        "customer_phone": customer_phone,
                     },
                     status=status.HTTP_502_BAD_GATEWAY,
                 )
 
             # ==================================================
-            # 15. SAVE USER LEG SID
+            # SAVE USER CALL SID
             # ==================================================
 
             crm_call.user_twilio_call_sid = (
                 twilio_call.sid
             )
 
-            # Backward compatibility
             crm_call.twilio_call_sid = (
                 twilio_call.sid
             )
@@ -1859,7 +1250,7 @@ class StartCallView(APIView):
                 getattr(
                     twilio_call,
                     "status",
-                    "queued"
+                    None,
                 )
                 or "queued"
             )
@@ -1874,14 +1265,15 @@ class StartCallView(APIView):
             )
 
             # ==================================================
-            # 16. RESPONSE
+            # RESPONSE
             # ==================================================
 
             return Response(
                 {
                     "success": True,
                     "message": (
-                        "Calling CRM user..."
+                        "Bridge call started. "
+                        "CRM user is being called."
                     ),
                     "call_id": crm_call.id,
                     "module": module,
@@ -1901,14 +1293,16 @@ class StartCallView(APIView):
         except Exception as exc:
 
             logger.exception(
-                "Unexpected error in StartCallView"
+                "Unexpected error in "
+                "StartCallView"
             )
 
             return Response(
                 {
                     "success": False,
                     "message": (
-                        "Failed to start call."
+                        "Failed to start "
+                        "bridge call."
                     ),
                     "error": str(exc),
                 },
@@ -1917,322 +1311,779 @@ class StartCallView(APIView):
 
 
 # ============================================================
-# CONNECT CUSTOMER
-#
-# Twilio calls this URL after CRM USER answers.
-#
-# Then:
-#
-# <Dial>
-#     <Number>customer</Number>
-# </Dial>
-#
+# BRIDGE USER STATUS
 # ============================================================
 
-class ConnectCustomerView(APIView):
+class BridgeUserStatusView(APIView):
 
-    # Twilio does not send our JWT.
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
+
     authentication_classes = []
 
     def post(self, request):
 
+        call_id = (
+            request.query_params.get(
+                "call_id"
+            )
+            or request.POST.get(
+                "call_id"
+            )
+        )
+
+        call_sid = request.POST.get(
+            "CallSid"
+        )
+
+        call_status = request.POST.get(
+            "CallStatus"
+        )
+
+        call_duration = request.POST.get(
+            "CallDuration"
+        )
+
+        logger.info(
+            "Bridge user status | "
+            "call_id=%s | "
+            "CallSid=%s | "
+            "CallStatus=%s",
+            call_id,
+            call_sid,
+            call_status,
+        )
+
+        if not call_id:
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
         try:
 
-            # ==================================================
-            # 1. GET CALL ID
-            # ==================================================
-
-            call_id = (
-                request.query_params.get(
-                    "call_id"
+            crm_call = (
+                Call.objects
+                .select_related(
+                    "connected_content_type"
                 )
-                or request.POST.get(
-                    "call_id"
+                .get(
+                    pk=call_id
                 )
             )
 
-            if not call_id:
+        except Call.DoesNotExist:
 
-                response = VoiceResponse()
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
 
-                response.say(
-                    "Unable to connect the call."
+        # ====================================================
+        # SAVE USER STATUS
+        # ====================================================
+
+        if call_sid:
+
+            crm_call.user_twilio_call_sid = (
+                call_sid
+            )
+
+            if not crm_call.twilio_call_sid:
+
+                crm_call.twilio_call_sid = (
+                    call_sid
                 )
 
-                response.hangup()
+        if call_status:
 
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
+            crm_call.twilio_status = (
+                call_status
+            )
+
+            if call_status in TERMINAL_STATUSES:
+
+                crm_call.call_outcome = (
+                    get_call_outcome(
+                        call_status
+                    )
                 )
 
-            # ==================================================
-            # 2. GET CRM CALL
-            # ==================================================
+        if call_duration:
 
             try:
 
-                crm_call = (
-                    Call.objects
-                    .select_related(
-                        "connected_content_type"
-                    )
-                    .get(
-                        pk=call_id
-                    )
+                crm_call.duration = int(
+                    call_duration
                 )
 
-            except Call.DoesNotExist:
+            except (
+                ValueError,
+                TypeError,
+            ):
+                pass
 
-                response = VoiceResponse()
+        crm_call.save()
 
-                response.say(
-                    "Call record not found."
-                )
+        # ====================================================
+        # ONLY CONTINUE AFTER USER ANSWERS
+        # ====================================================
 
-                response.hangup()
+        if call_status != "in-progress":
 
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 3. GET CONTENT TYPE
-            # ==================================================
-
-            content_type = (
-                crm_call.connected_content_type
+            return HttpResponse(
+                "",
+                content_type="text/plain",
             )
 
-            if not content_type:
+        # ====================================================
+        # REQUIRED SETTINGS
+        # ====================================================
 
-                response = VoiceResponse()
+        webhook_base_url = (
+            get_webhook_base_url()
+        )
 
-                response.say(
-                    "CRM record not found."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 4. GET CRM MODEL
-            # ==================================================
-
-            crm_model = (
-                content_type.model_class()
-            )
-
-            if not crm_model:
-
-                response = VoiceResponse()
-
-                response.say(
-                    "CRM model not found."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 5. GET CRM OBJECT
-            # ==================================================
-
-            try:
-
-                crm_object = (
-                    crm_model.objects.get(
-                        pk=crm_call.connected_object_id
-                    )
-                )
-
-            except crm_model.DoesNotExist:
-
-                response = VoiceResponse()
-
-                response.say(
-                    "CRM record not found."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 6. GET CUSTOMER PHONE
-            # ==================================================
-
-            customer_phone = get_customer_phone(
-                crm_object
-            )
-
-            if not customer_phone:
-
-                response = VoiceResponse()
-
-                response.say(
-                    "Customer phone number "
-                    "not found."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 7. VALIDATE CUSTOMER PHONE
-            # ==================================================
-
-            if not customer_phone.startswith("+"):
-
-                response = VoiceResponse()
-
-                response.say(
-                    "Customer phone number "
-                    "is not configured correctly."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            # ==================================================
-            # 8. TWILIO SETTINGS
-            # ==================================================
-
-            twilio_phone = getattr(
+        twilio_phone = normalize_phone(
+            getattr(
                 settings,
                 "TWILIO_PHONE_NUMBER",
-                None
+                None,
+            )
+        )
+
+        if not webhook_base_url:
+
+            logger.error(
+                "Bridge webhook base URL missing"
             )
 
-            webhook_base_url = getattr(
-                settings,
-                "TWILIO_WEBHOOK_BASE_URL",
-                None
+            return HttpResponse(
+                "",
+                content_type="text/plain",
             )
 
-            if not twilio_phone:
+        if not twilio_phone:
 
-                response = VoiceResponse()
-
-                response.say(
-                    "Twilio phone number "
-                    "is not configured."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            if not webhook_base_url:
-
-                response = VoiceResponse()
-
-                response.say(
-                    "Twilio webhook URL "
-                    "is not configured."
-                )
-
-                response.hangup()
-
-                return HttpResponse(
-                    str(response),
-                    content_type="text/xml",
-                )
-
-            webhook_base_url = (
-                webhook_base_url.rstrip("/")
+            logger.error(
+                "Twilio phone number missing"
             )
 
-            # ==================================================
-            # 9. CUSTOMER DIAL STATUS URL
-            # ==================================================
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
 
-            dial_status_url = (
+        # ====================================================
+        # CONFERENCE URL FOR USER
+        # ====================================================
+
+        user_conference_url = (
+            f"{webhook_base_url}"
+            f"/api/activities/call/"
+            f"bridge-conference/"
+            f"?call_id={crm_call.id}"
+            f"&participant=user"
+        )
+
+        # ====================================================
+        # CUSTOMER PHONE
+        # ====================================================
+
+        content_type = (
+            crm_call.connected_content_type
+        )
+
+        if not content_type:
+
+            logger.error(
+                "Bridge call %s has no content type",
+                crm_call.id,
+            )
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        crm_model = (
+            content_type.model_class()
+        )
+
+        if not crm_model:
+
+            logger.error(
+                "Bridge call %s model not found",
+                crm_call.id,
+            )
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        try:
+
+            crm_object = (
+                crm_model.objects.get(
+                    pk=crm_call.connected_object_id
+                )
+            )
+
+        except crm_model.DoesNotExist:
+
+            logger.error(
+                "Bridge CRM object not found | "
+                "call_id=%s",
+                crm_call.id,
+            )
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        customer_phone = get_customer_phone(
+            crm_object
+        )
+
+        customer_phone = normalize_phone(
+            customer_phone
+        )
+
+        if not is_valid_e164(
+            customer_phone
+        ):
+
+            logger.error(
+                "Invalid customer phone | "
+                "call_id=%s | phone=%s",
+                crm_call.id,
+                customer_phone,
+            )
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        # ====================================================
+        # DUPLICATE PROTECTION
+        # ====================================================
+
+        note_marker = (
+            "[BRIDGE_CUSTOMER_CALL_CREATED]"
+        )
+
+        if note_marker not in (
+            crm_call.note or ""
+        ):
+
+            crm_call.note = (
+                (crm_call.note or "")
+                + "\n"
+                + note_marker
+            )
+
+            crm_call.save(
+                update_fields=[
+                    "note",
+                    "updated_at",
+                ]
+            )
+
+            # =================================================
+            # CUSTOMER STATUS CALLBACK
+            # =================================================
+
+            customer_status_url = (
                 f"{webhook_base_url}"
                 f"/api/activities/call/"
-                f"dial-status/"
+                f"bridge-customer-status/"
                 f"?call_id={crm_call.id}"
-                f"&leg=customer"
             )
 
-            # ==================================================
-            # 10. BUILD TWIML
-            #
-            # USER IS ALREADY ON THE CALL.
-            #
-            # NOW TWILIO DIALS CUSTOMER.
-            # ==================================================
+            # =================================================
+            # CREATE CUSTOMER CALL
+            # =================================================
 
-            response = VoiceResponse()
+            try:
+
+                client = get_twilio_client()
+
+                customer_call = (
+                    client.calls.create(
+                        to=customer_phone,
+                        from_=twilio_phone,
+                        url=TRIAL_VOICE_TEMPLATE,
+                        status_callback=(
+                            customer_status_url
+                        ),
+                    )
+                )
+
+            except Exception as twilio_error:
+
+                logger.exception(
+                    "Unable to create "
+                    "customer Trial call | "
+                    "call_id=%s",
+                    crm_call.id,
+                )
+
+                crm_call.note = (
+                    (crm_call.note or "")
+                    + "\n"
+                    + "[BRIDGE_CUSTOMER_CALL_ERROR] "
+                    + str(twilio_error)
+                )
+
+                crm_call.save(
+                    update_fields=[
+                        "note",
+                        "updated_at",
+                    ]
+                )
+
+                try:
+
+                    client.calls(
+                        crm_call.user_twilio_call_sid
+                    ).update(
+                        url=user_conference_url,
+                        method="POST",
+                    )
+
+                except Exception:
+
+                    logger.exception(
+                        "Unable to redirect "
+                        "user into conference"
+                    )
+
+                return HttpResponse(
+                    "",
+                    content_type="text/plain",
+                )
+
+            # =================================================
+            # SAVE CUSTOMER SID
+            # =================================================
+
+            crm_call.customer_twilio_call_sid = (
+                customer_call.sid
+            )
+
+            crm_call.save(
+                update_fields=[
+                    "customer_twilio_call_sid",
+                    "updated_at",
+                ]
+            )
+
+            logger.info(
+                "Customer Trial call created | "
+                "crm_call=%s | "
+                "customer_sid=%s | "
+                "customer=%s",
+                crm_call.id,
+                customer_call.sid,
+                customer_phone,
+            )
+
+        # ====================================================
+        # REDIRECT USER INTO CONFERENCE
+        # ====================================================
+
+        try:
+
+            client = get_twilio_client()
+
+            client.calls(
+                crm_call.user_twilio_call_sid
+            ).update(
+                url=user_conference_url,
+                method="POST",
+            )
+
+            logger.info(
+                "User redirected to conference | "
+                "call_id=%s | "
+                "user_sid=%s",
+                crm_call.id,
+                crm_call.user_twilio_call_sid,
+            )
+
+        except Exception as exc:
+
+            logger.exception(
+                "Unable to redirect user call "
+                "to conference | "
+                "call_id=%s",
+                crm_call.id,
+            )
+
+            crm_call.note = (
+                (crm_call.note or "")
+                + "\n"
+                + "[BRIDGE_USER_REDIRECT_ERROR] "
+                + str(exc)
+            )
+
+            crm_call.save(
+                update_fields=[
+                    "note",
+                    "updated_at",
+                ]
+            )
+
+        return HttpResponse(
+            "",
+            content_type="text/plain",
+        )
+
+
+# ============================================================
+# BRIDGE CUSTOMER STATUS
+# ============================================================
+
+class BridgeCustomerStatusView(APIView):
+
+    permission_classes = [
+        AllowAny
+    ]
+
+    authentication_classes = []
+
+    def post(self, request):
+
+        call_id = (
+            request.query_params.get(
+                "call_id"
+            )
+            or request.POST.get(
+                "call_id"
+            )
+        )
+
+        call_sid = request.POST.get(
+            "CallSid"
+        )
+
+        call_status = request.POST.get(
+            "CallStatus"
+        )
+
+        call_duration = request.POST.get(
+            "CallDuration"
+        )
+
+        logger.info(
+            "Bridge customer status | "
+            "call_id=%s | "
+            "CallSid=%s | "
+            "CallStatus=%s",
+            call_id,
+            call_sid,
+            call_status,
+        )
+
+        if not call_id:
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        try:
+
+            crm_call = Call.objects.get(
+                pk=call_id
+            )
+
+        except Call.DoesNotExist:
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        # ====================================================
+        # SAVE CUSTOMER STATUS
+        # ====================================================
+
+        if call_sid:
+
+            crm_call.customer_twilio_call_sid = (
+                call_sid
+            )
+
+        if call_status:
+
+            crm_call.twilio_status = (
+                call_status
+            )
+
+            if call_status in TERMINAL_STATUSES:
+
+                crm_call.call_outcome = (
+                    get_call_outcome(
+                        call_status
+                    )
+                )
+
+        if call_duration:
+
+            try:
+
+                crm_call.duration = int(
+                    call_duration
+                )
+
+            except (
+                ValueError,
+                TypeError,
+            ):
+                pass
+
+        crm_call.save()
+
+        # ====================================================
+        # ONLY REDIRECT WHEN CUSTOMER ANSWERS
+        # ====================================================
+
+        if call_status != "in-progress":
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        # ====================================================
+        # WEBHOOK URL
+        # ====================================================
+
+        webhook_base_url = (
+            get_webhook_base_url()
+        )
+
+        if not webhook_base_url:
+
+            logger.error(
+                "Webhook URL missing "
+                "for customer conference"
+            )
+
+            return HttpResponse(
+                "",
+                content_type="text/plain",
+            )
+
+        customer_conference_url = (
+            f"{webhook_base_url}"
+            f"/api/activities/call/"
+            f"bridge-conference/"
+            f"?call_id={crm_call.id}"
+            f"&participant=customer"
+        )
+
+        # ====================================================
+        # REDIRECT CUSTOMER
+        # ====================================================
+
+        try:
+
+            client = get_twilio_client()
+
+            client.calls(
+                crm_call.customer_twilio_call_sid
+            ).update(
+                url=customer_conference_url,
+                method="POST",
+            )
+
+            logger.info(
+                "Customer redirected to conference | "
+                "call_id=%s | "
+                "customer_sid=%s",
+                crm_call.id,
+                crm_call.customer_twilio_call_sid,
+            )
+
+        except Exception as exc:
+
+            logger.exception(
+                "Unable to redirect customer "
+                "to conference | "
+                "call_id=%s",
+                crm_call.id,
+            )
+
+            crm_call.note = (
+                (crm_call.note or "")
+                + "\n"
+                + "[BRIDGE_CUSTOMER_REDIRECT_ERROR] "
+                + str(exc)
+            )
+
+            crm_call.save(
+                update_fields=[
+                    "note",
+                    "updated_at",
+                ]
+            )
+
+        return HttpResponse(
+            "",
+            content_type="text/plain",
+        )
+
+
+# ============================================================
+# BRIDGE CONFERENCE
+# ============================================================
+
+class BridgeConferenceView(APIView):
+
+    permission_classes = [
+        AllowAny
+    ]
+
+    authentication_classes = []
+
+    def post(self, request):
+
+        return self._conference_response(
+            request
+        )
+
+    def get(self, request):
+
+        return self._conference_response(
+            request
+        )
+
+    def _conference_response(
+        self,
+        request,
+    ):
+
+        call_id = (
+            request.query_params.get(
+                "call_id"
+            )
+            or request.POST.get(
+                "call_id"
+            )
+        )
+
+        participant = (
+            request.query_params.get(
+                "participant"
+            )
+            or request.POST.get(
+                "participant"
+            )
+            or "customer"
+        )
+
+        participant = str(
+            participant
+        ).lower().strip()
+
+        logger.info(
+            "Bridge conference request | "
+            "call_id=%s | "
+            "participant=%s",
+            call_id,
+            participant,
+        )
+
+        response = VoiceResponse()
+
+        if participant == "user":
 
             dial = Dial(
-                caller_id=twilio_phone,
-                action=dial_status_url,
-                method="POST",
-                timeout=30,
+                timeout=600,
             )
 
-            dial.number(
-                customer_phone,
-                status_callback=dial_status_url,
-                status_callback_method="POST",
-                status_callback_event=[
-                    "initiated",
-                    "ringing",
-                    "answered",
-                    "completed",
-                ],
+            dial.conference(
+                "crm-bridge",
+                beep=False,
+                start_conference_on_enter=True,
+                end_conference_on_exit=True,
+                wait_url="",
             )
 
             response.append(
                 dial
             )
 
-            # ==================================================
-            # 11. RETURN TWIML
-            # ==================================================
+        else:
 
-            return HttpResponse(
-                str(response),
-                content_type="text/xml",
+            dial = Dial(
+                timeout=600,
             )
 
-        except Exception as exc:
-
-            logger.exception(
-                "Unexpected error in "
-                "ConnectCustomerView"
+            dial.conference(
+                "crm-bridge",
+                beep=False,
+                start_conference_on_enter=False,
+                end_conference_on_exit=False,
+                wait_url="",
             )
+
+            response.append(
+                dial
+            )
+
+        logger.info(
+            "Returning conference TwiML | "
+            "call_id=%s | "
+            "participant=%s | "
+            "twiml=%s",
+            call_id,
+            participant,
+            str(response),
+        )
+
+        return HttpResponse(
+            str(response),
+            content_type="text/xml",
+        )
+
+
+# ============================================================
+# LEGACY CONNECT CUSTOMER
+# ============================================================
+
+class ConnectCustomerView(APIView):
+
+    permission_classes = [
+        AllowAny
+    ]
+
+    authentication_classes = []
+
+    def post(self, request):
+
+        call_id = (
+            request.query_params.get(
+                "call_id"
+            )
+            or request.POST.get(
+                "call_id"
+            )
+        )
+
+        if not call_id:
 
             response = VoiceResponse()
 
             response.say(
-                "An error occurred while "
-                "connecting the customer."
+                "Unable to connect the call."
             )
 
             response.hangup()
@@ -2242,30 +2093,62 @@ class ConnectCustomerView(APIView):
                 content_type="text/xml",
             )
 
+        webhook_base_url = (
+            get_webhook_base_url()
+        )
+
+        if not webhook_base_url:
+
+            response = VoiceResponse()
+
+            response.say(
+                "Twilio webhook URL "
+                "is not configured."
+            )
+
+            response.hangup()
+
+            return HttpResponse(
+                str(response),
+                content_type="text/xml",
+            )
+
+        conference_url = (
+            f"{webhook_base_url}"
+            f"/api/activities/call/"
+            f"bridge-conference/"
+            f"?call_id={call_id}"
+            f"&participant=customer"
+        )
+
+        response = VoiceResponse()
+
+        response.redirect(
+            conference_url,
+            method="POST",
+        )
+
+        return HttpResponse(
+            str(response),
+            content_type="text/xml",
+        )
+
 
 # ============================================================
 # DIAL STATUS
-#
-# Handles:
-#
-# USER LEG
-# CUSTOMER LEG
-#
 # ============================================================
 
 class DialStatusView(APIView):
 
-    # Twilio webhook
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
+
     authentication_classes = []
 
     def post(self, request):
 
         try:
-
-            # ==================================================
-            # 1. GET CALL ID
-            # ==================================================
 
             call_id = (
                 request.query_params.get(
@@ -2275,10 +2158,6 @@ class DialStatusView(APIView):
                     "call_id"
                 )
             )
-
-            # ==================================================
-            # 2. GET LEG
-            # ==================================================
 
             leg = (
                 request.query_params.get(
@@ -2296,16 +2175,12 @@ class DialStatusView(APIView):
 
             if not call_id:
 
-                response = VoiceResponse()
-
                 return HttpResponse(
-                    str(response),
+                    str(
+                        VoiceResponse()
+                    ),
                     content_type="text/xml",
                 )
-
-            # ==================================================
-            # 3. TWILIO VALUES
-            # ==================================================
 
             call_sid = request.POST.get(
                 "CallSid"
@@ -2319,10 +2194,6 @@ class DialStatusView(APIView):
                 "CallDuration"
             )
 
-            # ==================================================
-            # 4. <DIAL> CHILD CALL VALUES
-            # ==================================================
-
             dial_call_sid = request.POST.get(
                 "DialCallSid"
             )
@@ -2335,10 +2206,6 @@ class DialStatusView(APIView):
                 "DialCallDuration"
             )
 
-            # ==================================================
-            # 5. GET CRM CALL
-            # ==================================================
-
             try:
 
                 crm_call = Call.objects.get(
@@ -2347,22 +2214,18 @@ class DialStatusView(APIView):
 
             except Call.DoesNotExist:
 
-                response = VoiceResponse()
-
                 return HttpResponse(
-                    str(response),
+                    str(
+                        VoiceResponse()
+                    ),
                     content_type="text/xml",
                 )
 
             # ==================================================
-            # 6. CUSTOMER LEG
+            # CUSTOMER
             # ==================================================
 
             if leg == "customer":
-
-                # ----------------------------------------------
-                # CUSTOMER TWILIO SID
-                # ----------------------------------------------
 
                 if dial_call_sid:
 
@@ -2375,10 +2238,6 @@ class DialStatusView(APIView):
                     crm_call.customer_twilio_call_sid = (
                         call_sid
                     )
-
-                # ----------------------------------------------
-                # CUSTOMER STATUS
-                # ----------------------------------------------
 
                 customer_status = (
                     dial_call_status
@@ -2397,10 +2256,6 @@ class DialStatusView(APIView):
                         )
                     )
 
-                # ----------------------------------------------
-                # CUSTOMER DURATION
-                # ----------------------------------------------
-
                 duration = (
                     dial_call_duration
                     or call_duration
@@ -2418,18 +2273,13 @@ class DialStatusView(APIView):
                         ValueError,
                         TypeError,
                     ):
-
                         pass
 
             # ==================================================
-            # 7. USER LEG
+            # USER
             # ==================================================
 
             elif leg == "user":
-
-                # ----------------------------------------------
-                # USER TWILIO SID
-                # ----------------------------------------------
 
                 if call_sid:
 
@@ -2437,36 +2287,19 @@ class DialStatusView(APIView):
                         call_sid
                     )
 
-                # ----------------------------------------------
-                # USER STATUS
-                # ----------------------------------------------
-
-                user_status = call_status
-
-                if user_status:
+                if call_status:
 
                     crm_call.twilio_status = (
-                        user_status
+                        call_status
                     )
 
-                    # Only set outcome from user leg
-                    # when the customer leg has not
-                    # completed yet.
-
-                    if (
-                        user_status
-                        in TERMINAL_STATUSES
-                    ):
+                    if call_status in TERMINAL_STATUSES:
 
                         crm_call.call_outcome = (
                             get_call_outcome(
-                                user_status
+                                call_status
                             )
                         )
-
-                # ----------------------------------------------
-                # USER DURATION
-                # ----------------------------------------------
 
                 if call_duration:
 
@@ -2480,11 +2313,10 @@ class DialStatusView(APIView):
                         ValueError,
                         TypeError,
                     ):
-
                         pass
 
             # ==================================================
-            # 8. BACKWARD COMPATIBILITY
+            # BACKWARD COMPATIBILITY
             # ==================================================
 
             if (
@@ -2496,78 +2328,66 @@ class DialStatusView(APIView):
                     call_sid
                 )
 
-            # ==================================================
-            # 9. SAVE
-            # ==================================================
-
             crm_call.save()
 
             logger.info(
-                "Twilio call status updated | "
+                "Legacy DialStatus updated | "
                 "call_id=%s | "
                 "leg=%s | "
                 "CallSid=%s | "
                 "DialCallSid=%s | "
                 "CallStatus=%s | "
-                "DialCallStatus=%s | "
-                "duration=%s | "
-                "DialCallDuration=%s",
+                "DialCallStatus=%s",
                 call_id,
                 leg,
                 call_sid,
                 dial_call_sid,
                 call_status,
                 dial_call_status,
-                call_duration,
-                dial_call_duration,
             )
 
-            # ==================================================
-            # 10. EMPTY TWIML RESPONSE
-            # ==================================================
-
-            response = VoiceResponse()
-
             return HttpResponse(
-                str(response),
+                str(
+                    VoiceResponse()
+                ),
                 content_type="text/xml",
             )
 
-        except Exception as exc:
+        except Exception:
 
             logger.exception(
-                "Unexpected error in DialStatusView"
+                "Unexpected error in "
+                "DialStatusView"
             )
 
-            response = VoiceResponse()
-
             return HttpResponse(
-                str(response),
+                str(
+                    VoiceResponse()
+                ),
                 content_type="text/xml",
             )
 
 
 # ============================================================
 # SYNC CALL
-#
-# Frontend currently uses GET:
-#
-# GET /activities/call/<id>/sync/
-#
-# We support GET.
-# POST is also supported for compatibility.
 # ============================================================
 
 class SyncCallView(APIView):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated
+    ]
 
-    def _sync_call(self, request, pk):
+    def _sync_call(
+        self,
+        request,
+        pk,
+    ):
 
         try:
 
             # ==================================================
-            # 1. GET CRM CALL
+            # GET CALL
             # ==================================================
 
             try:
@@ -2589,10 +2409,7 @@ class SyncCallView(APIView):
                 )
 
             # ==================================================
-            # 2. FIND BEST TWILIO SID
-            #
-            # Customer leg is preferred because
-            # it contains the actual customer call.
+            # CHOOSE SID
             # ==================================================
 
             twilio_sid = (
@@ -2615,14 +2432,10 @@ class SyncCallView(APIView):
                 )
 
             # ==================================================
-            # 3. TWILIO CLIENT
+            # FETCH TWILIO
             # ==================================================
 
             client = get_twilio_client()
-
-            # ==================================================
-            # 4. FETCH TWILIO CALL
-            # ==================================================
 
             twilio_call = (
                 client.calls(
@@ -2631,7 +2444,7 @@ class SyncCallView(APIView):
             )
 
             # ==================================================
-            # 5. UPDATE CRM
+            # STATUS
             # ==================================================
 
             crm_call.twilio_status = (
@@ -2645,7 +2458,7 @@ class SyncCallView(APIView):
             )
 
             # ==================================================
-            # 6. UPDATE DURATION
+            # DURATION
             # ==================================================
 
             if getattr(
@@ -2664,18 +2477,9 @@ class SyncCallView(APIView):
                     ValueError,
                     TypeError,
                 ):
-
                     pass
 
-            # ==================================================
-            # 7. SAVE
-            # ==================================================
-
             crm_call.save()
-
-            # ==================================================
-            # 8. RESPONSE
-            # ==================================================
 
             return Response(
                 {
@@ -2712,24 +2516,24 @@ class SyncCallView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-    # ========================================================
-    # GET
-    # ========================================================
-
-    def get(self, request, pk):
+    def get(
+        self,
+        request,
+        pk,
+    ):
 
         return self._sync_call(
             request,
-            pk
+            pk,
         )
 
-    # ========================================================
-    # POST
-    # ========================================================
-
-    def post(self, request, pk):
+    def post(
+        self,
+        request,
+        pk,
+    ):
 
         return self._sync_call(
             request,
-            pk
+            pk,
         )
