@@ -9,12 +9,10 @@ from apps.deals.models import Deal
 
 User = get_user_model()
 
-
 CLOSED_STAGES = [
     "Closed Won",
     "Closed Lost",
 ]
-
 
 ACTIVE_STAGES = [
     "Contract Sent",
