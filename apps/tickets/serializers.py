@@ -1,3 +1,4 @@
+
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
@@ -73,6 +74,7 @@ class TicketSerializer(serializers.ModelSerializer):
         )
 
         if ticket_owners is not None:
+
             instance.ticket_owners.set(
                 ticket_owners
             )
@@ -105,6 +107,22 @@ class TicketListSerializer(serializers.ModelSerializer):
     )
 
     # -------------------------------------------------
+    # ASSOCIATED DEAL ID
+    # -------------------------------------------------
+
+    associated_deal_id = serializers.IntegerField(
+        source="associated_deal.id",
+        read_only=True
+    )
+
+    # -------------------------------------------------
+    # ASSOCIATED DEAL
+    # Includes associated lead
+    # -------------------------------------------------
+
+    associated_deal = serializers.SerializerMethodField()
+
+    # -------------------------------------------------
     # TICKET OWNER NAMES
     # -------------------------------------------------
 
@@ -116,15 +134,6 @@ class TicketListSerializer(serializers.ModelSerializer):
 
     ticket_owner_ids = serializers.SerializerMethodField()
 
-    # -------------------------------------------------
-    # ASSOCIATED DEAL ID
-    # -------------------------------------------------
-
-    associated_deal_id = serializers.IntegerField(
-        source="associated_deal.id",
-        read_only=True
-    )
-
     class Meta:
         model = Ticket
 
@@ -132,16 +141,60 @@ class TicketListSerializer(serializers.ModelSerializer):
             "id",
             "ticket_name",
             "description",
+
+            # Existing deal information
             "deal_name",
             "deal_status",
             "associated_deal_id",
+
+            # Nested deal -> lead information
+            "associated_deal",
+
             "ticket_status",
             "priority",
             "source",
+
+            # Ticket owners
             "ticket_owners",
             "ticket_owner_ids",
+
             "created_date",
         )
+
+    # -------------------------------------------------
+    # ASSOCIATED DEAL
+    # -------------------------------------------------
+
+    def get_associated_deal(self, obj):
+
+        deal = obj.associated_deal
+
+        if not deal:
+            return None
+
+        lead = deal.associated_lead
+
+        lead_data = None
+
+        if lead:
+            lead_data = {
+                "id": lead.id,
+                "first_name": lead.first_name,
+                "last_name": lead.last_name,
+                "email": lead.email,
+                "phone_number": lead.phone_number,
+            }
+
+        return {
+            "id": deal.id,
+            "deal_name": deal.deal_name,
+            "deal_status": deal.deal_stage,
+            "associated_lead": lead_data,
+        }
+
+    # -------------------------------------------------
+    # TICKET OWNER NAMES
+    # -------------------------------------------------
 
     def get_ticket_owners(self, obj):
 
@@ -163,6 +216,10 @@ class TicketListSerializer(serializers.ModelSerializer):
                 result.append(user.email)
 
         return result
+
+    # -------------------------------------------------
+    # TICKET OWNER IDS
+    # -------------------------------------------------
 
     def get_ticket_owner_ids(self, obj):
 
@@ -219,4 +276,6 @@ class UpdateTicketSerializer(serializers.ModelSerializer):
             )
 
         return instance
+
+
 
