@@ -37,7 +37,11 @@ DEBUG = config("DEBUG", cast=bool)
 
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "crm-django-backend.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 
 
